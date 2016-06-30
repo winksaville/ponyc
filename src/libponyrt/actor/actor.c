@@ -124,6 +124,7 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
 bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
 {
   ctx->current = actor;
+  ctx->loaded_sends = 0;
 
   pony_msg_t* msg;
   size_t app = 0;
@@ -141,8 +142,13 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
       app++;
       try_gc(ctx, actor);
 
-      if(app == batch)
+      if((app == batch) || (ctx->loaded_sends > 0))
+      {
+        // If we have reached our batch limit or we are sending to loaded
+        // queues, mark our queue as loaded and stop handling messages.
+        actor->loaded_queue = true;
         return !has_flag(actor, FLAG_UNSCHEDULED);
+      }
     }
   }
 
@@ -157,8 +163,13 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
       app++;
       try_gc(ctx, actor);
 
-      if(app == batch)
+      if((app == batch) || (ctx->loaded_sends > 0))
+      {
+        // If we have reached our batch limit or we are sending to loaded
+        // queues, mark our queue as loaded and stop handling messages.
+        actor->loaded_queue = true;
         return !has_flag(actor, FLAG_UNSCHEDULED);
+      }
     }
 
     // Stop handling a batch if we reach the head we found when we were
@@ -171,6 +182,7 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
   // empty, but we may have received further messages.
   assert(app < batch);
   try_gc(ctx, actor);
+  actor->loaded_queue = false;
 
   if(has_flag(actor, FLAG_UNSCHEDULED))
   {
@@ -346,6 +358,9 @@ void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);
+  } else {
+    if(to->loaded_queue)
+      ctx->loaded_sends++;
   }
 }
 
@@ -396,7 +411,8 @@ void* pony_alloc_small(pony_ctx_t* ctx, uint32_t sizeclass)
   ctx->count_alloc_size += HEAP_MIN << sizeclass;
 #endif
 
-  return ponyint_heap_alloc_small(ctx->current, &ctx->current->heap, sizeclass);
+  return ponyint_heap_alloc_small(ctx->current, &ctx->current->heap,
+    sizeclass);
 }
 
 void* pony_alloc_large(pony_ctx_t* ctx, size_t size)

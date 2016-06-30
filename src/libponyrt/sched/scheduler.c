@@ -272,7 +272,8 @@ static void run(scheduler_t* sched)
         // we continue to run this actor.
         push(sched, actor);
         actor = next;
-      } else if(ponyint_is_cycle(actor)) {
+      } else if(ponyint_is_cycle(actor) || (sched->ctx.loaded_sends > 0)) {
+        // TODO: checking if this works for loaded sends
         // If all we have is the cycle detector, try to steal something else to
         // run as well.
         next = steal(sched, actor);

@@ -146,7 +146,10 @@ static void send_local_object(pony_ctx_t* ctx, void* p, pony_type_t* t,
     return;
 
   if(mutability == PONY_TRACE_IMMUTABLE)
+  {
     obj->immutable = true;
+    return;
+  }
 
   if(!obj->immutable)
     recurse(ctx, p, t->trace);
@@ -167,6 +170,7 @@ static void recv_local_object(pony_ctx_t* ctx, void* p, pony_type_t* t,
   recv_local_actor(gc);
 
   // Dec, mark and recurse.
+  assert(obj->rc > 0);
   obj->rc--;
   obj->mark = gc->mark;
 
@@ -174,7 +178,10 @@ static void recv_local_object(pony_ctx_t* ctx, void* p, pony_type_t* t,
     return;
 
   if(mutability == PONY_TRACE_IMMUTABLE)
+  {
     obj->immutable = true;
+    return;
+  }
 
   if(!obj->immutable)
     recurse(ctx, p, t->trace);

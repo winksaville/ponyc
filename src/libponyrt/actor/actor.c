@@ -147,7 +147,9 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
       {
         // If we have reached our batch limit or we are sending to loaded
         // queues, mark our queue as loaded and stop handling messages.
-        actor->loaded_queue = true;
+        if(!has_flag(actor, FLAG_SYSTEM))
+          actor->loaded_queue = true;
+
         return !has_flag(actor, FLAG_UNSCHEDULED);
       }
     }
@@ -168,7 +170,9 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
       {
         // If we have reached our batch limit or we are sending to loaded
         // queues, mark our queue as loaded and stop handling messages.
-        actor->loaded_queue = true;
+        if(!has_flag(actor, FLAG_SYSTEM))
+          actor->loaded_queue = true;
+
         return !has_flag(actor, FLAG_UNSCHEDULED);
       }
     }
@@ -181,7 +185,6 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
 
   // We didn't hit our app message batch limit. We now believe our queue to be
   // empty, but we may have received further messages.
-  assert(app < batch);
   try_gc(ctx, actor);
   actor->loaded_queue = has_flag(actor, FLAG_BACKPRESSURE);
 

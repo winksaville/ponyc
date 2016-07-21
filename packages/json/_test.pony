@@ -1,7 +1,6 @@
 use "ponytest"
 use "collections"
 
-
 actor Main is TestList
   new create(env: Env) => PonyTest(env, this)
   new make() => None
@@ -22,8 +21,10 @@ actor Main is TestList
     test(_TestPrintArray)
     test(_TestPrintObject)
 
-    test(_TestParsePrint)
+    test(_TestNoPrettyPrintArray)
+    test(_TestNoPrettyPrintObject)
 
+    test(_TestParsePrint)
 
 class iso _TestParseBasic is UnitTest
   """
@@ -43,7 +44,6 @@ class iso _TestParseBasic is UnitTest
     h.assert_error(lambda()? => JsonDoc.parse("") end)
     h.assert_error(lambda()? => JsonDoc.parse("   ") end)
     h.assert_error(lambda()? => JsonDoc.parse("true true") end)
-
 
 class iso _TestParseKeyword is UnitTest
   """
@@ -67,7 +67,6 @@ class iso _TestParseKeyword is UnitTest
     h.assert_error(lambda()? => JsonDoc.parse("truw") end)
     h.assert_error(lambda()? => JsonDoc.parse("truez") end)
     h.assert_error(lambda()? => JsonDoc.parse("TRUE") end)
-
 
 class iso _TestParseNumber is UnitTest
   """
@@ -111,7 +110,6 @@ class iso _TestParseNumber is UnitTest
     h.assert_error(lambda()? => JsonDoc.parse("1.-3") end)
     h.assert_error(lambda()? => JsonDoc.parse("1e") end)
 
-
 class iso _TestParseString is UnitTest
   """
   Test Json parsing of strings.
@@ -152,7 +150,6 @@ class iso _TestParseString is UnitTest
     h.assert_error(lambda()? => JsonDoc.parse(""" "\u037g" """) end)
     h.assert_error(lambda()? => JsonDoc.parse(""" "\uD834" """) end)
     h.assert_error(lambda()? => JsonDoc.parse(""" "\uDD1E" """) end)
-
 
 class iso _TestParseArray is UnitTest
   """
@@ -205,7 +202,6 @@ class iso _TestParseArray is UnitTest
     h.assert_error(lambda()? => JsonDoc.parse("[") end)
     h.assert_error(lambda()? => JsonDoc.parse("[true") end)
     h.assert_error(lambda()? => JsonDoc.parse("[true,") end)
-
 
 class iso _TestParseObject is UnitTest
   """
@@ -263,7 +259,6 @@ class iso _TestParseObject is UnitTest
     h.assert_error(lambda()? => JsonDoc.parse("""{"a" true}""") end)
     h.assert_error(lambda()? => JsonDoc.parse("""{:true}""") end)
 
-
 class iso _TestParseRFC1 is UnitTest
   """
   Test Json parsing of first example from RFC7159.
@@ -319,7 +314,6 @@ class iso _TestParseRFC1 is UnitTest
     h.assert_eq[I64](943, array.data(1) as I64)
     h.assert_eq[I64](234, array.data(2) as I64)
     h.assert_eq[I64](38793, array.data(3) as I64)
-
 
 class iso _TestParseRFC2 is UnitTest
   """
@@ -385,7 +379,6 @@ class iso _TestParseRFC2 is UnitTest
     h.assert_eq[String]("94085", obj2.data("Zip") as String)
     h.assert_eq[String]("US", obj2.data("Country") as String)
 
-
 class iso _TestPrintKeyword is UnitTest
   """
   Test Json printing of keywords.
@@ -403,7 +396,6 @@ class iso _TestPrintKeyword is UnitTest
 
     doc.data = None
     h.assert_eq[String]("null", doc.string())
-
 
 class iso _TestPrintNumber is UnitTest
   """
@@ -435,7 +427,6 @@ class iso _TestPrintNumber is UnitTest
     // We don't test exponent formatted output because it can be slightly
     // different on different platforms
 
-
 class iso _TestPrintString is UnitTest
   """
   Test Json printing of strings.
@@ -466,7 +457,6 @@ class iso _TestPrintString is UnitTest
     doc.data = "Foo\U01D11Ebar"
     h.assert_eq[String](""""Foo\uD834\uDD1Ebar"""", doc.string())
 
-
 class iso _TestPrintArray is UnitTest
   """
   Test Json printing of arrays.
@@ -478,22 +468,22 @@ class iso _TestPrintArray is UnitTest
     let array: JsonArray = JsonArray
 
     doc.data = array
-    h.assert_eq[String]("[]", doc.string())
+    h.assert_eq[String]("[]", doc.string(true))
 
     array.data.clear()
     array.data.push(true)
-    h.assert_eq[String]("[\n  true\n]", doc.string())
+    h.assert_eq[String]("[\n  true\n]", doc.string(true))
 
     array.data.clear()
     array.data.push(true)
     array.data.push(false)
-    h.assert_eq[String]("[\n  true,\n  false\n]", doc.string())
+    h.assert_eq[String]("[\n  true,\n  false\n]", doc.string(true))
 
     array.data.clear()
     array.data.push(true)
     array.data.push(I64(13))
     array.data.push(None)
-    h.assert_eq[String]("[\n  true,\n  13,\n  null\n]", doc.string())
+    h.assert_eq[String]("[\n  true,\n  13,\n  null\n]", doc.string(true))
 
     array.data.clear()
     array.data.push(true)
@@ -502,8 +492,44 @@ class iso _TestPrintArray is UnitTest
     nested.data.push(None)
     array.data.push(nested)
     h.assert_eq[String]("[\n  true,\n  [\n    52,\n    null\n  ]\n]",
-      doc.string())
+      doc.string(true))
 
+class iso _TestNoPrettyPrintArray is UnitTest
+  """
+  Test Json none-pretty printing of arrays.
+  """
+  fun name(): String => "JSON/nopprint.array"
+
+  fun apply(h: TestHelper) =>
+    let doc: JsonDoc = JsonDoc
+    let array: JsonArray = JsonArray
+
+    doc.data = array
+    h.assert_eq[String]("[]", doc.string(false))
+
+    array.data.clear()
+    array.data.push(true)
+    h.assert_eq[String]("[true]", doc.string(false))
+
+    array.data.clear()
+    array.data.push(true)
+    array.data.push(false)
+    h.assert_eq[String]("[true,false]", doc.string(false))
+
+    array.data.clear()
+    array.data.push(true)
+    array.data.push(I64(13))
+    array.data.push(None)
+    h.assert_eq[String]("[true,13,null]", doc.string(false))
+
+    array.data.clear()
+    array.data.push(true)
+    var nested: JsonArray = JsonArray
+    nested.data.push(I64(52))
+    nested.data.push(None)
+    array.data.push(nested)
+    h.assert_eq[String]("[true,[52,null]]",
+      doc.string(false))
 
 class iso _TestPrintObject is UnitTest
   """
@@ -516,22 +542,48 @@ class iso _TestPrintObject is UnitTest
     let obj: JsonObject = JsonObject
 
     doc.data = obj
-    h.assert_eq[String]("{}", doc.string())
+    h.assert_eq[String]("{}", doc.string(true))
 
     obj.data.clear()
     obj.data("foo") = true
-    h.assert_eq[String]("{\n  \"foo\": true\n}", doc.string())
+    h.assert_eq[String]("{\n  \"foo\": true\n}", doc.string(true))
 
     obj.data.clear()
     obj.data("a") = true
     obj.data("b") = I64(3)
-    let s = doc.string()
+    let s = doc.string(true)
     h.assert_true((s == "{\n  \"a\": true,\n  \"b\": 3\n}") or
       (s == "{\n  \"b\": false,\n  \"a\": true\n}"))
 
     // We don't test with more fields in the object because we don't know what
     // order they will be printed in
 
+class iso _TestNoPrettyPrintObject is UnitTest
+  """
+  Test Json none-pretty printing of objects.
+  """
+  fun name(): String => "JSON/nopprint.object"
+
+  fun apply(h: TestHelper) =>
+    let doc: JsonDoc = JsonDoc
+    let obj: JsonObject = JsonObject
+
+    doc.data = obj
+    h.assert_eq[String]("{}", doc.string(false))
+
+    obj.data.clear()
+    obj.data("foo") = true
+    h.assert_eq[String]("{\"foo\":true}", doc.string(false))
+
+    obj.data.clear()
+    obj.data("a") = true
+    obj.data("b") = I64(3)
+    let s = doc.string(false)
+    h.assert_true((s == "{\"a\":true,\"b\":3}") or
+      (s == "{\"b\":3,\"a\":true}"))
+
+    // We don't test with more fields in the object because we don't know what
+    // order they will be printed in
 
 class iso _TestParsePrint is UnitTest
   """
@@ -573,7 +625,7 @@ class iso _TestParsePrint is UnitTest
 
     let doc: JsonDoc = JsonDoc
     doc.parse(src)
-    let printed = doc.string()
+    let printed = doc.string(true)
 
     // TODO: Sort out line endings on different platforms. For now normalise
     // before comparing

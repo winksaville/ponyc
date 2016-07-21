@@ -1,11 +1,9 @@
 use "collections"
 
-
 type JsonType is (F64 | I64 | Bool | None | String | JsonArray | JsonObject)
   """
   All JSON data types.
   """
-
 
 class JsonArray
   var data: Array[JsonType]
@@ -22,7 +20,7 @@ class JsonArray
     """
     data = data'
 
-  fun string(indent: String = ""): String =>
+  fun string(indent: String = "", pretty_print: Bool = false): String =>
     """
     Generate string representation of this array.
     """
@@ -30,17 +28,31 @@ class JsonArray
       return "[]"
     end
 
-    var text = ""
+    var text = recover String(256) end
     let elem_indent = indent + "  "
 
+    text.append("[")
+
     for i in data.values() do
-      if text.size() > 0 then
-        text = text + ","
+      if text.size() > 1 then
+        text.append(",")
       end
 
-      text = text + "\n" + elem_indent + _JsonPrint._string(i, elem_indent)
+      if pretty_print then
+        text.append("\n")
+        text.append(elem_indent)
+      end
+
+      text.append(_JsonPrint._string(i, elem_indent, pretty_print))
     end
-    "[" + text + "\n" + indent + "]"
+
+    if pretty_print then
+      text.append("\n")
+      text.append(indent)
+    end
+
+    text.append("]")
+    text
 
 
 class JsonObject
@@ -59,7 +71,7 @@ class JsonObject
     """
     data = data'
 
-  fun string(indent: String = ""): String =>
+  fun string(indent: String = "", pretty_print: Bool = false): String =>
     """
     Generate string representation of this object.
     """
@@ -67,15 +79,36 @@ class JsonObject
       return "{}"
     end
 
-    var text = ""
+    var text = recover String(256) end
     let elem_indent = indent + "  "
 
+    text.append("{")
+
     for i in data.pairs() do
-      if text.size() > 0 then
-        text = text + ","
+      if text.size() > 1 then
+        text.append(",")
       end
 
-      text = text + "\n" + elem_indent + "\"" + i._1 + "\": " +
-        _JsonPrint._string(i._2, elem_indent)
+      if pretty_print then
+        text.append("\n")
+        text.append(elem_indent)
+      end
+
+      text.append("\"")
+      text.append(i._1)
+      text.append("\":")
+
+      if pretty_print then
+        text.append(" ")
+      end
+
+      text.append(_JsonPrint._string(i._2, elem_indent, pretty_print))
     end
-    "{" + text + "\n" + indent + "}"
+
+    if pretty_print then
+      text.append("\n")
+      text.append(indent)
+    end
+
+    text.append("}")
+    text

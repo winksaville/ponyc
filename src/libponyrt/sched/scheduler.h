@@ -17,6 +17,15 @@ typedef void (*trace_actor_fn)(pony_ctx_t* ctx, pony_actor_t* actor);
 
 typedef struct scheduler_t scheduler_t;
 
+typedef enum
+{
+  SCHED_NONE,
+  SCHED_ACTIVE,
+  SCHED_ACTIVE_PRESSURED,
+  SCHED_EXPIRED,
+  SCHED_EXPIRED_PRESSURED
+} sched_level_t;
+
 typedef struct pony_ctx_t
 {
   scheduler_t* scheduler;

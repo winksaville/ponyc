@@ -297,20 +297,26 @@ static void run(scheduler_t* sched)
       return;
 
     // Run and possibly reschedule the actor.
-    if(ponyint_actor_run(&sched->ctx, actor, batch_size))
+    switch(ponyint_actor_run(&sched->ctx, actor, batch_size))
     {
-      if(sched->ctx.loaded_sends > 0)
-      {
-        // If there is back pressure, or it's the cycle detector, schedule the
-        // actor on the pressure queue.
-        ponyint_mpmcq_push_single(sched->pressure_q, actor);
-      } else if(ponyint_is_cycle(actor)) {
-        // TODO: move into the previous clause
-        ponyint_mpmcq_push_single(sched->pressure_q, actor);
-      } else {
-        // Otherwise, schedule the actor on the expired queue.
+      case SCHED_NONE:
+        break;
+
+      case SCHED_ACTIVE:
+        ponyint_mpmcq_push_single(sched->active_q, actor);
+        break;
+
+      case SCHED_ACTIVE_PRESSURED:
         ponyint_mpmcq_push_single(sched->expired_q, actor);
-      }
+        break;
+
+      case SCHED_EXPIRED:
+        ponyint_mpmcq_push_single(sched->expired_q, actor);
+        break;
+
+      case SCHED_EXPIRED_PRESSURED:
+        ponyint_mpmcq_push_single(sched->pressure_q, actor);
+        break;
     }
   }
 }

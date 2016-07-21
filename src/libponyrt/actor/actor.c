@@ -192,13 +192,13 @@ sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
   bool empty = (msg == NULL) || (msg == head);
 
   // TODO: remove this
-  if(pressure || !empty)
-  {
-    printf("%p:%s%s\n", actor,
-      pressure ? " PRESSURE" : "",
-      !empty ? " LOADED" : ""
-      );
-  }
+  // if(pressure || !empty)
+  // {
+  //   printf("%p:%s%s\n", actor,
+  //     pressure ? " PRESSURE" : "",
+  //     !empty ? " LOADED" : ""
+  //     );
+  // }
 
   if(actor->loaded_queue)
   {

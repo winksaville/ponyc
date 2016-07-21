@@ -197,6 +197,9 @@ static pony_actor_t* steal(scheduler_t* sched)
 
     if(actor != NULL)
     {
+      // TODO: remove this
+      printf("STEAL: %d stole %p from %d\n", sched->cpu, actor, victim->cpu);
+
       send_msg(0, SCHED_UNBLOCK, 0);
       return actor;
     }
@@ -296,6 +299,9 @@ static void run(scheduler_t* sched)
     if(actor == NULL)
       return;
 
+    // TODO: remove this
+    // printf("RUN: %d running %p\n", sched->cpu, actor);
+
     // Run and possibly reschedule the actor.
     switch(ponyint_actor_run(&sched->ctx, actor, batch_size))
     {
@@ -307,15 +313,21 @@ static void run(scheduler_t* sched)
         break;
 
       case SCHED_ACTIVE_PRESSURED:
-        ponyint_mpmcq_push_single(sched->expired_q, actor);
+        // TODO:
+        // ponyint_mpmcq_push_single(sched->expired_q, actor);
+        ponyint_mpmcq_push_single(sched->active_q, actor);
         break;
 
       case SCHED_EXPIRED:
-        ponyint_mpmcq_push_single(sched->expired_q, actor);
+        // TODO:
+        // ponyint_mpmcq_push_single(sched->expired_q, actor);
+        ponyint_mpmcq_push_single(sched->active_q, actor);
         break;
 
       case SCHED_EXPIRED_PRESSURED:
-        ponyint_mpmcq_push_single(sched->pressure_q, actor);
+        // TODO:
+        // ponyint_mpmcq_push_single(sched->pressure_q, actor);
+        ponyint_mpmcq_push_single(sched->active_q, actor);
         break;
     }
   }

@@ -429,7 +429,8 @@ static void ponyint_sched_shutdown()
   ponyint_mpmcq_destroy(&inject);
 }
 
-pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, size_t batch)
+pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, bool noaffinity,
+  size_t batch)
 {
   use_yield = !noyield;
   batch_size = batch;
@@ -443,7 +444,7 @@ pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, size_t batch)
     scheduler_count * sizeof(scheduler_t));
   memset(scheduler, 0, scheduler_count * sizeof(scheduler_t));
 
-  ponyint_cpu_assign(scheduler_count, scheduler);
+  ponyint_cpu_assign(scheduler_count, scheduler, noaffinity);
 
   for(uint32_t i = 0; i < scheduler_count; i++)
   {

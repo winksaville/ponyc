@@ -95,7 +95,8 @@ struct scheduler_t
   mpmcq_t* q4;
 };
 
-pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, size_t batch);
+pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, bool noaffinity,
+  size_t batch);
 
 bool ponyint_sched_start(bool library);
 

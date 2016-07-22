@@ -124,8 +124,20 @@ uint32_t ponyint_cpu_count()
 #endif
 }
 
-void ponyint_cpu_assign(uint32_t count, scheduler_t* scheduler)
+void ponyint_cpu_assign(uint32_t count, scheduler_t* scheduler,
+  bool noaffinity)
 {
+  if(noaffinity)
+  {
+    for(uint32_t i = 0; i < count; i++)
+    {
+      scheduler[i].cpu = -1;
+      scheduler[i].node = 0;
+    }
+
+    return;
+  }
+
 #if defined(PLATFORM_IS_LINUX)
   uint32_t cpu_count = ponyint_numa_cores();
 
@@ -174,9 +186,11 @@ void ponyint_cpu_assign(uint32_t count, scheduler_t* scheduler)
 
 void ponyint_cpu_affinity(uint32_t cpu)
 {
+  if(cpu == (uint32_t)-1)
+    return;
+
 #if defined(PLATFORM_IS_LINUX) || defined(PLATFORM_IS_FREEBSD)
   // Affinity is handled when spawning the thread.
-  (void)cpu;
 #elif defined(PLATFORM_IS_MACOSX)
   thread_affinity_policy_data_t policy;
   policy.affinity_tag = cpu;

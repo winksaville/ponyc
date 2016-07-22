@@ -10,7 +10,8 @@ PONY_EXTERN_C_BEGIN
 
 uint32_t ponyint_cpu_count();
 
-void ponyint_cpu_assign(uint32_t count, scheduler_t* scheduler);
+void ponyint_cpu_assign(uint32_t count, scheduler_t* scheduler,
+  bool noaffinity);
 
 void ponyint_cpu_affinity(uint32_t cpu);
 

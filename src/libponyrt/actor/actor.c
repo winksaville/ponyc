@@ -186,19 +186,12 @@ sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
   try_gc(ctx, actor);
 
   // Update the loaded queue status.
+  bool system = has_flag(actor, FLAG_SYSTEM);
+
   bool pressure =
     (ctx->loaded_sends > 0) || has_flag(actor, FLAG_BACKPRESSURE);
 
   bool empty = (msg == NULL) || (msg == head);
-
-  // TODO: remove this
-  // if(pressure || !empty)
-  // {
-  //   printf("%p:%s%s\n", actor,
-  //     pressure ? " PRESSURE" : "",
-  //     !empty ? " LOADED" : ""
-  //     );
-  // }
 
   if(actor->loaded_queue)
   {
@@ -209,7 +202,7 @@ sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
     // If the queue was not previously loaded, mark it loaded if we handled a
     // full batch or sent to a loaded queue. Never mark a system actor as
     // having a loaded queue.
-    if(!has_flag(actor, FLAG_SYSTEM))
+    if(!system)
       actor->loaded_queue = (app == batch) || pressure;
   }
 
@@ -219,13 +212,12 @@ sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
     return SCHED_NONE;
 
   // If we know we have pending work, don't block.
-  // If we have processed any application level messages, defer blocking.
-  if((app > 0) || !ponyint_messageq_maybeempty(&actor->q))
+  if(!ponyint_messageq_maybeempty(&actor->q))
   {
-    if(!empty)
-      return pressure ? SCHED_ACTIVE_PRESSURED : SCHED_ACTIVE;
+    if(system)
+      return SCHED_4;
 
-    return pressure ? SCHED_EXPIRED_PRESSURED : SCHED_EXPIRED;
+    return pressure ? SCHED_3 : SCHED_2;
   }
 
   // Tell the cycle detector we are blocking. We may not actually block if a
@@ -242,10 +234,13 @@ sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
     }
   }
 
-  empty = ponyint_messageq_markempty(&actor->q);
+  if(ponyint_messageq_markempty(&actor->q))
+    return SCHED_NONE;
 
-  return empty ? SCHED_NONE :
-    (pressure ? SCHED_ACTIVE_PRESSURED : SCHED_ACTIVE);
+  if(system)
+    return SCHED_4;
+
+  return pressure ? SCHED_3 : SCHED_2;
 }
 
 void ponyint_actor_destroy(pony_actor_t* actor)

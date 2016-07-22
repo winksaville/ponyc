@@ -8,29 +8,25 @@ PONY_EXTERN_C_BEGIN
 
 typedef struct mpmcq_node_t mpmcq_node_t;
 
-__pony_spec_align__(
-  typedef struct mpmcq_dwcas_t
+typedef struct mpmcq_dwcas_t
+{
+  union
   {
-    union
+    struct
     {
-      struct
-      {
-        uintptr_t aba;
-        mpmcq_node_t* node;
-      };
-
-      dw_t dw;
+      uintptr_t aba;
+      mpmcq_node_t* node;
     };
-  } mpmcq_dwcas_t, 16
-);
 
-__pony_spec_align__(
-  typedef struct mpmcq_t
-  {
-    mpmcq_node_t* volatile head;
-    mpmcq_dwcas_t tail;
-  } mpmcq_t, 64
-);
+    dw_t dw;
+  };
+} mpmcq_dwcas_t;
+
+typedef struct mpmcq_t
+{
+  mpmcq_node_t* volatile head;
+  mpmcq_dwcas_t tail;
+} mpmcq_t;
 
 void ponyint_mpmcq_init(mpmcq_t* q);
 

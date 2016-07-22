@@ -20,10 +20,10 @@ typedef struct scheduler_t scheduler_t;
 typedef enum
 {
   SCHED_NONE,
-  SCHED_ACTIVE,
-  SCHED_ACTIVE_PRESSURED,
-  SCHED_EXPIRED,
-  SCHED_EXPIRED_PRESSURED
+  SCHED_1,
+  SCHED_2,
+  SCHED_3,
+  SCHED_4
 } sched_level_t;
 
 typedef struct pony_ctx_t
@@ -67,7 +67,7 @@ typedef struct pony_ctx_t
 struct scheduler_t
 {
   // These are rarely changed.
-  pony_thread_id_t tid;
+  __pony_spec_align__(pony_thread_id_t tid, 64);
   uint32_t cpu;
   uint32_t node;
   bool terminate;
@@ -81,15 +81,18 @@ struct scheduler_t
   int32_t ack_token;
   uint32_t ack_count;
 
-  // These are accessed by other scheduler threads. The mpmcq_t is aligned.
-  mpmcq_t q1;
-  mpmcq_t q2;
-  mpmcq_t q3;
-  messageq_t mq;
+  // These are accessed by other scheduler threads.
+  __pony_spec_align__(messageq_t mq, 64);
 
-  mpmcq_t* active_q;
-  mpmcq_t* expired_q;
-  mpmcq_t* pressure_q;
+  mpmcq_t sched_q1;
+  mpmcq_t sched_q2;
+  mpmcq_t sched_q3;
+  mpmcq_t sched_q4;
+
+  mpmcq_t* q1;
+  mpmcq_t* q2;
+  mpmcq_t* q3;
+  mpmcq_t* q4;
 };
 
 pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, size_t batch);

@@ -17,6 +17,15 @@ typedef void (*trace_actor_fn)(pony_ctx_t* ctx, pony_actor_t* actor);
 
 typedef struct scheduler_t scheduler_t;
 
+typedef enum
+{
+  SCHED_NONE,
+  SCHED_1,
+  SCHED_2,
+  SCHED_3,
+  SCHED_4
+} sched_level_t;
+
 typedef struct pony_ctx_t
 {
   scheduler_t* scheduler;
@@ -26,6 +35,8 @@ typedef struct pony_ctx_t
   gcstack_t* stack;
   actormap_t acquire;
   bool finalising;
+
+  size_t loaded_sends;
 
   void* serialise_buffer;
   size_t serialise_size;
@@ -56,7 +67,7 @@ typedef struct pony_ctx_t
 struct scheduler_t
 {
   // These are rarely changed.
-  pony_thread_id_t tid;
+  __pony_spec_align__(pony_thread_id_t tid, 64);
   uint32_t cpu;
   uint32_t node;
   bool terminate;
@@ -70,12 +81,22 @@ struct scheduler_t
   int32_t ack_token;
   uint32_t ack_count;
 
-  // These are accessed by other scheduler threads. The mpmcq_t is aligned.
-  mpmcq_t q;
-  messageq_t mq;
+  // These are accessed by other scheduler threads.
+  __pony_spec_align__(messageq_t mq, 64);
+
+  mpmcq_t sched_q1;
+  mpmcq_t sched_q2;
+  mpmcq_t sched_q3;
+  mpmcq_t sched_q4;
+
+  mpmcq_t* q1;
+  mpmcq_t* q2;
+  mpmcq_t* q3;
+  mpmcq_t* q4;
 };
 
-pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield);
+pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, bool noaffinity,
+  size_t batch);
 
 bool ponyint_sched_start(bool library);
 

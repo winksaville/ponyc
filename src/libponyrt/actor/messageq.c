@@ -73,6 +73,14 @@ pony_msg_t* ponyint_messageq_pop(messageq_t* q)
   return next;
 }
 
+bool ponyint_messageq_maybeempty(messageq_t* q)
+{
+  pony_msg_t* tail = q->tail;
+  pony_msg_t* head = _atomic_load(&q->head);
+
+  return head == tail;
+}
+
 bool ponyint_messageq_markempty(messageq_t* q)
 {
   pony_msg_t* tail = q->tail;

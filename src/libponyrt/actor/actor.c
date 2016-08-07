@@ -1,5 +1,4 @@
 #include "actor.h"
-#include "../sched/scheduler.h"
 #include "../sched/cpu.h"
 #include "../mem/pool.h"
 #include "../gc/cycle.h"
@@ -14,7 +13,8 @@ enum
   FLAG_RC_CHANGED = 1 << 1,
   FLAG_SYSTEM = 1 << 2,
   FLAG_UNSCHEDULED = 1 << 3,
-  FLAG_PENDINGDESTROY = 1 << 4,
+  FLAG_BACKPRESSURE = 1 << 4,
+  FLAG_PENDINGDESTROY = 1 << 5,
 };
 
 static bool actor_noblock = false;
@@ -32,6 +32,29 @@ static void set_flag(pony_actor_t* actor, uint8_t flag)
 static void unset_flag(pony_actor_t* actor, uint8_t flag)
 {
   actor->flags &= (uint8_t)~flag;
+}
+
+static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
+{
+  if(!ponyint_heap_startgc(&actor->heap))
+    return;
+
+#ifdef USE_TELEMETRY
+  ctx->count_gc_passes++;
+  size_t tsc = ponyint_cpu_tick();
+#endif
+
+  ponyint_gc_mark(ctx);
+
+  if(actor->type->trace != NULL)
+    actor->type->trace(ctx, actor);
+
+  ponyint_mark_done(ctx);
+  ponyint_heap_endgc(&actor->heap);
+
+#ifdef USE_TELEMETRY
+  ctx->time_in_gc += (ponyint_cpu_tick() - tsc);
+#endif
 }
 
 static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
@@ -93,109 +116,131 @@ static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
       }
 
       actor->type->dispatch(ctx, actor, msg);
+      try_gc(ctx, actor);
       return true;
     }
   }
 }
 
-static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
+static bool handle_continuation(pony_ctx_t* ctx, pony_actor_t* actor)
 {
-  if(!ponyint_heap_startgc(&actor->heap))
-    return;
+  pony_msg_t* msg = actor->continuation;
 
-#ifdef USE_TELEMETRY
-  ctx->count_gc_passes++;
-  size_t tsc = ponyint_cpu_tick();
-#endif
+  if(msg == NULL)
+    return false;
 
-  ponyint_gc_mark(ctx);
+  actor->continuation = msg->next;
+  bool ret = handle_message(ctx, actor, msg);
+  ponyint_pool_free(msg->index, msg);
 
-  if(actor->type->trace != NULL)
-    actor->type->trace(ctx, actor);
+  // If we handle an application message, try to gc.
+  if(ret)
+    try_gc(ctx, actor);
 
-  ponyint_mark_done(ctx);
-  ponyint_heap_endgc(&actor->heap);
-
-#ifdef USE_TELEMETRY
-  ctx->time_in_gc += (ponyint_cpu_tick() - tsc);
-#endif
+  return ret;
 }
 
-bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
+sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
+  size_t batch)
 {
   ctx->current = actor;
+  ctx->loaded_sends = 0;
 
   pony_msg_t* msg;
   size_t app = 0;
+  bool run = true;
 
-  while(actor->continuation != NULL)
+  while(run && (actor->continuation != NULL))
   {
-    msg = actor->continuation;
-    actor->continuation = msg->next;
-    bool ret = handle_message(ctx, actor, msg);
-    ponyint_pool_free(msg->index, msg);
-
-    if(ret)
-    {
-      // If we handle an application message, try to gc.
+    if(handle_continuation(ctx, actor))
       app++;
-      try_gc(ctx, actor);
 
-      if(app == batch)
-        return !has_flag(actor, FLAG_UNSCHEDULED);
-    }
+    // End this turn if we reach our batch limit, or if we send to a loaded
+    // queue.
+    run =
+      (app < batch) &&
+      (ctx->loaded_sends == 0);
   }
 
   // If we have been scheduled, the head will not be marked as empty.
   pony_msg_t* head = _atomic_load(&actor->q.head);
 
-  while((msg = ponyint_messageq_pop(&actor->q)) != NULL)
+  while(run && ((msg = ponyint_messageq_pop(&actor->q)) != NULL))
   {
     if(handle_message(ctx, actor, msg))
-    {
-      // If we handle an application message, try to gc.
       app++;
-      try_gc(ctx, actor);
 
-      if(app == batch)
-        return !has_flag(actor, FLAG_UNSCHEDULED);
-    }
-
-    // Stop handling a batch if we reach the head we found when we were
-    // scheduled.
-    if(msg == head)
-      break;
+    // End this turn if we reach the head we found when the turn began, or if
+    // a continuation was enqueued, or if we reach our batch limit, or if we
+    // send to a loaded queue.
+    run =
+      (msg != head) &&
+      (actor->continuation == NULL) &&
+      (app < batch) &&
+      (ctx->loaded_sends == 0);
   }
 
-  // We didn't hit our app message batch limit. We now believe our queue to be
-  // empty, but we may have received further messages.
-  assert(app < batch);
+  // TODO: if we have a zero RC and an empty queue we can destroy ourself
+
+  // Try GC at the end of the turn.
   try_gc(ctx, actor);
 
-  if(has_flag(actor, FLAG_UNSCHEDULED))
+  // Update the loaded queue status.
+  bool system = has_flag(actor, FLAG_SYSTEM);
+
+  bool pressure =
+    (ctx->loaded_sends > 0) || has_flag(actor, FLAG_BACKPRESSURE);
+
+  bool empty = (msg == NULL) || (msg == head);
+
+  if(actor->loaded_queue)
   {
-    // When unscheduling, don't mark the queue as empty, since we don't want
-    // to get rescheduled if we receive a message.
-    return false;
+    // If the queue was previously loaded, mark it unloaded if we handled
+    // every message in our queue without sending to a loaded queue.
+    actor->loaded_queue = !empty || pressure;
+  } else {
+    // If the queue was not previously loaded, mark it loaded if we handled a
+    // full batch or sent to a loaded queue. Never mark a system actor as
+    // having a loaded queue.
+    if(!system)
+      actor->loaded_queue = (app == batch) || pressure;
   }
 
-  // If we have processed any application level messages, defer blocking.
-  if(app > 0)
-    return true;
+  // When unscheduling, don't mark the queue as empty, since we don't want
+  // to get rescheduled if we receive a message.
+  if(has_flag(actor, FLAG_UNSCHEDULED))
+    return SCHED_NONE;
+
+  // If we know we have pending work, don't block.
+  if(!ponyint_messageq_maybeempty(&actor->q))
+  {
+    if(system)
+      return SCHED_4;
+
+    return pressure ? SCHED_3 : SCHED_2;
+  }
 
   // Tell the cycle detector we are blocking. We may not actually block if a
   // message is received between now and when we try to mark our queue as
   // empty, but that's ok, we have still logically blocked.
-  if(!has_flag(actor, FLAG_BLOCKED | FLAG_SYSTEM) ||
-    has_flag(actor, FLAG_RC_CHANGED))
+  if(!actor_noblock)
   {
-    set_flag(actor, FLAG_BLOCKED);
-    unset_flag(actor, FLAG_RC_CHANGED);
-    ponyint_cycle_block(ctx, actor, &actor->gc);
+    if(!has_flag(actor, FLAG_BLOCKED | FLAG_SYSTEM) ||
+      has_flag(actor, FLAG_RC_CHANGED))
+    {
+      set_flag(actor, FLAG_BLOCKED);
+      unset_flag(actor, FLAG_RC_CHANGED);
+      ponyint_cycle_block(ctx, actor, &actor->gc);
+    }
   }
 
-  // Return true (i.e. reschedule immediately) if our queue isn't empty.
-  return !ponyint_messageq_markempty(&actor->q);
+  if(ponyint_messageq_markempty(&actor->q))
+    return SCHED_NONE;
+
+  if(system)
+    return SCHED_4;
+
+  return pressure ? SCHED_3 : SCHED_2;
 }
 
 void ponyint_actor_destroy(pony_actor_t* actor)
@@ -289,9 +334,6 @@ pony_actor_t* pony_create(pony_ctx_t* ctx, pony_type_t* type)
   ponyint_heap_init(&actor->heap);
   ponyint_gc_done(&actor->gc);
 
-  if(actor_noblock)
-    ponyint_actor_setsystem(actor);
-
   if(ctx->current != NULL)
   {
     // actors begin unblocked and referenced by the creating actor
@@ -346,6 +388,9 @@ void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* m)
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);
+  } else {
+    if(to->loaded_queue)
+      ctx->loaded_sends++;
   }
 }
 
@@ -396,7 +441,8 @@ void* pony_alloc_small(pony_ctx_t* ctx, uint32_t sizeclass)
   ctx->count_alloc_size += HEAP_MIN << sizeclass;
 #endif
 
-  return ponyint_heap_alloc_small(ctx->current, &ctx->current->heap, sizeclass);
+  return ponyint_heap_alloc_small(ctx->current, &ctx->current->heap,
+    sizeclass);
 }
 
 void* pony_alloc_large(pony_ctx_t* ctx, size_t size)
@@ -434,6 +480,20 @@ void* pony_alloc_final(pony_ctx_t* ctx, size_t size, pony_final_fn final)
 void pony_triggergc(pony_actor_t* actor)
 {
   actor->heap.next_gc = 0;
+}
+
+void pony_setbackpressure(pony_actor_t* actor)
+{
+  // Set the backpressure flag.
+  set_flag(actor, FLAG_BACKPRESSURE);
+  actor->loaded_queue = true;
+}
+
+void pony_unsetbackpressure(pony_actor_t* actor)
+{
+  // Unset the backpressure flag. The queue may be marked as unloaded in
+  // ponyint_actor_run.
+  unset_flag(actor, FLAG_BACKPRESSURE);
 }
 
 void pony_schedule(pony_ctx_t* ctx, pony_actor_t* actor)

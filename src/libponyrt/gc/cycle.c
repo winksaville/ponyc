@@ -855,6 +855,8 @@ void ponyint_cycle_create(pony_ctx_t* ctx, uint32_t min_deferred,
 
   cycle_detector = pony_create(ctx, &cycle_type);
   ponyint_actor_setsystem(cycle_detector);
+  pony_setbackpressure(cycle_detector);
+  cycle_detector->gc.rc = 1;
 
   detector_t* d = (detector_t*)cycle_detector;
   d->min_deferred = (size_t)1 << (size_t)min_deferred;

@@ -1,6 +1,7 @@
 #ifndef actor_h
 #define actor_h
 
+#include "../sched/scheduler.h"
 #include "../gc/gc.h"
 #include "../mem/heap.h"
 #include "messageq.h"
@@ -24,13 +25,15 @@ typedef struct pony_actor_t
   messageq_t q;
   pony_msg_t* continuation;
   uint8_t flags;
+  bool loaded_queue;
 
   // keep things accessed by other actors on a separate cache line
   __pony_spec_align__(heap_t heap, 64); // 52/104 bytes
   gc_t gc; // 44/80 bytes
 } pony_actor_t;
 
-bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch);
+sched_level_t ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor,
+  size_t batch);
 
 void ponyint_actor_destroy(pony_actor_t* actor);
 

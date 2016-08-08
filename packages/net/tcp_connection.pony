@@ -296,7 +296,7 @@ actor TCPConnection
           if _pending.size() > 128 then
             // If more than 128 asynchronous writes are scheduled, apply
             // back pressure.
-            @pony_setbackpressure[None](this)
+            _apply_backpressure()
           end
         end
       else
@@ -309,8 +309,7 @@ actor TCPConnection
             if len < data.size() then
               // Send any remaining data later. Apply back pressure.
               _pending.push((data, len))
-              _writeable = false
-              @pony_setbackpressure[None](this)
+              _apply_backpressure()
             end
           else
             // Non-graceful shutdown on error.
@@ -357,7 +356,7 @@ actor TCPConnection
       if _pending.size() < 64 then
         // If fewer than 64 asynchronous writes are scheduled, remove back
         // pressure.
-        @pony_unsetbackpressure[None](this)
+        _release_backpressure()
       end
     end
 
@@ -386,7 +385,7 @@ actor TCPConnection
 
             if _pending.size() == 0 then
               // Remove back pressure.
-              @pony_unsetbackpressure[None](this)
+              _release_backpressure()
             end
           end
         else
@@ -593,3 +592,15 @@ actor TCPConnection
     _notify.closed(this)
 
     try (_listen as TCPListener)._conn_closed() end
+
+  fun ref _apply_backpressure() =>
+    ifdef not windows then
+      _writeable = false
+    end
+
+    @pony_setbackpressure[None](this)
+    _notify.throttled(this, true)
+
+  fun ref _release_backpressure() =>
+    @pony_unsetbackpressure[None](this)
+    _notify.throttled(this, false)

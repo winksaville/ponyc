@@ -153,7 +153,7 @@ DECLARE_THREAD_FN(ponyint_asio_backend_dispatch)
           b->kq = -1;
         }
       } else {
-        asio_event_t* ev = ep->udata;
+        asio_event_t* ev = (asio_event_t*)ep->udata;
 
         if(ep->flags & EV_ERROR)
           continue;

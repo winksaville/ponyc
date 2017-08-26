@@ -558,6 +558,30 @@ gmake
 
 Please note that on 32-bit X86, using LLVM 3.7.1 or 3.8.1 on FreeBSD currently produces executables that don't run. Please use LLVM 3.9.1. 64-bit X86 does not have this problem, and works fine with LLVM 3.7.1 and 3.8.1.
 
+## Building on NetBSD
+
+NetBSD has been tested on 64-bit X86 NetBSD 7.0.
+
+First, install the required dependencies:
+
+```bash
+sudo pkgin install gcc5-5.4.0nb3
+export PATH=/usr/pkg/gcc5/bin/:$PATH
+sudo pkgin install git
+sudo pkgin install gmake
+sudo pkg install llvm38
+sudo pkgin install pcre2
+ftp ftp://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/7.0_2016Q3/All/llvm-3.8.1.tgz
+sudo pkg_add llvm-3.8.1.tgz
+```
+
+This will build ponyc and compile helloworld:
+
+```bash
+gmake
+./build/release/ponyc examples/helloworld
+```
+
 ## Building on Mac OS X
 [![Linux and OS X](https://travis-ci.org/ponylang/ponyc.svg?branch=master)](https://travis-ci.org/ponylang/ponyc)
 

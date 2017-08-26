@@ -1199,7 +1199,7 @@ bool target_is_bsd(char* t)
 {
   Triple triple = Triple(t);
 
-  return triple.isOSDragonFly() || triple.isOSFreeBSD();
+  return triple.isOSDragonFly() || triple.isOSFreeBSD() || triple.isNetBSD();
 }
 
 bool target_is_freebsd(char* t)
@@ -1214,6 +1214,13 @@ bool target_is_dragonfly(char* t)
   Triple triple = Triple(t);
 
   return triple.isOSDragonFly();
+}
+
+bool target_is_netbsd(char* t)
+{
+  Triple triple = Triple(t);
+
+  return triple.isOSNetBSD();
 }
 
 bool target_is_macosx(char* t)

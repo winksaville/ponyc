@@ -34,6 +34,9 @@
 #elif defined(__DragonFly__)
 #  define PLATFORM_IS_BSD
 #  define PLATFORM_IS_DRAGONFLY
+#elif defined(__NetBSD__)
+#  define PLATFORM_IS_BSD
+#  define PLATFORM_IS_NETBSD
 #elif defined(_WIN32)
 #  define PLATFORM_IS_WINDOWS
 #  if defined(_MSC_VER)

@@ -31,6 +31,11 @@ else
     OSTYPE = bsd
     CXX = c++
   endif
+
+  ifeq ($(UNAME_S),NetBSD)
+    OSTYPE = bsd
+    CXX = c++
+  endif
 endif
 
 ifndef lto

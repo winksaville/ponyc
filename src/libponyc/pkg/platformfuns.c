@@ -29,6 +29,12 @@ bool os_is_target(const char* attribute, bool release, bool* out_is_target, pass
     return true;
   }
 
+  if(!strcmp(attribute, OS_NETBSD_NAME))
+  {
+    *out_is_target = target_is_netbsd(options->triple);
+    return true;
+  }
+
   if(!strcmp(attribute, OS_LINUX_NAME))
   {
     *out_is_target = target_is_linux(options->triple);

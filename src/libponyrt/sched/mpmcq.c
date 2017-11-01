@@ -3,6 +3,7 @@
 #include "mpmcq.h"
 #include "../mem/pool.h"
 #include "../sched/cpu.h"
+#include <stdio.h>
 
 #ifdef USE_VALGRIND
 #include <valgrind/helgrind.h>
@@ -18,7 +19,8 @@ struct mpmcq_node_t
 
 static mpmcq_node_t* node_alloc(void* data)
 {
-  mpmcq_node_t* node = POOL_ALLOC(mpmcq_node_t);
+  mpmcq_node_t* node = (mpmcq_node_t*)ponyint_pool_alloc(1);
+  //POOL_ALLOC(mpmcq_node_t);
   atomic_store_explicit(&node->next, NULL, memory_order_relaxed);
   atomic_store_explicit(&node->data, data, memory_order_relaxed);
 
@@ -31,7 +33,8 @@ static void node_free(mpmcq_node_t* node)
   ANNOTATE_HAPPENS_BEFORE_FORGET_ALL(node);
   ANNOTATE_HAPPENS_BEFORE_FORGET_ALL(&node->data);
 #endif
-  POOL_FREE(mpmcq_node_t, node);
+  //POOL_FREE(mpmcq_node_t, node);
+  ponyint_pool_free(1, node);
 }
 
 void ponyint_mpmcq_init(mpmcq_t* q)
@@ -124,8 +127,9 @@ void* ponyint_mpmcq_pop(mpmcq_t* q)
     // already been consumed.
     next = atomic_load_explicit(&tail->next, memory_order_relaxed);
 
-    if(next == NULL)
+    if(next == NULL) {
       return NULL;
+    }
 
 #ifdef PLATFORM_IS_X86
     xchg.object = next;
@@ -135,6 +139,7 @@ void* ponyint_mpmcq_pop(mpmcq_t* q)
 #ifdef PLATFORM_IS_X86
   while(!bigatomic_compare_exchange_weak_explicit(&q->tail, &cmp, xchg,
     memory_order_relaxed, memory_order_relaxed));
+
 #else
   while(!atomic_compare_exchange_weak_explicit(&q->tail, &tail, next,
     memory_order_relaxed, memory_order_relaxed));

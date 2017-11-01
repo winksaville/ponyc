@@ -731,6 +731,8 @@ static void pool_push(pool_local_t* thread, pool_global_t* global)
   while(!atomic_compare_exchange_weak_explicit(&global->central, &top, p,
     memory_order_release, memory_order_relaxed));
 #endif
+
+printf("Pushed size %ld [%p]\n", global->size, &pool_local[0]);
 }
 
 static pool_item_t* pool_pull(pool_local_t* thread, pool_global_t* global)
@@ -785,6 +787,8 @@ static pool_item_t* pool_pull(pool_local_t* thread, pool_global_t* global)
 
   thread->pool = p->next;
   thread->length = top->length - 1;
+
+  printf("Pulled size %ld [%p]\n", global->size, &pool_local[0]);
 
   return p;
 }

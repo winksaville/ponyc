@@ -66,7 +66,7 @@ static pony_actor_t* pop_global(scheduler_t* sched)
  * Sends a message to a thread.
  */
 
-static void send_msg(uint32_t to, sched_msg_t msg, intptr_t arg)
+/*static void send_msg(uint32_t to, sched_msg_t msg, intptr_t arg)
 {
   pony_msgi_t* m = (pony_msgi_t*)pony_alloc_msg(
     POOL_INDEX(sizeof(pony_msgi_t)), msg);
@@ -90,9 +90,12 @@ static void send_msg_all(sched_msg_t msg, intptr_t arg)
 
   for(uint32_t i = 1; i < scheduler_count; i++)
     send_msg_single(i, msg, arg);
-}
+}*/
+#define send_msg(a,b,c)
+#define send_msg_single(a,b,c)
+#define send_msg_all(a,b)
 
-static void read_msg(scheduler_t* sched)
+/*static void read_msg(scheduler_t* sched)
 {
   pony_msgi_t* m;
 
@@ -148,7 +151,7 @@ static void read_msg(scheduler_t* sched)
     }
   }
 }
-
+*/
 
 /**
  * If we can terminate, return true. If all schedulers are waiting, one of
@@ -156,7 +159,7 @@ static void read_msg(scheduler_t* sched)
  * terminate.
  */
 
-static bool quiescent(scheduler_t* sched, uint64_t tsc, uint64_t tsc2)
+/*static bool quiescent(scheduler_t* sched, uint64_t tsc, uint64_t tsc2)
 {
   read_msg(sched);
 
@@ -184,7 +187,7 @@ static bool quiescent(scheduler_t* sched, uint64_t tsc, uint64_t tsc2)
   ponyint_cpu_core_pause(tsc, tsc2, use_yield);
   return false;
 }
-
+*/
 
 
 static scheduler_t* choose_victim(scheduler_t* sched)
@@ -230,32 +233,54 @@ static scheduler_t* choose_victim(scheduler_t* sched)
  */
 static pony_actor_t* steal(scheduler_t* sched, pony_actor_t* prev)
 {
-  send_msg(0, SCHED_BLOCK, 0);
+  //send_msg(0, SCHED_BLOCK, 0);
   uint64_t tsc = ponyint_cpu_tick();
   pony_actor_t* actor;
 
   while(true)
   {
-    scheduler_t* victim = choose_victim(sched);
+    actor = NULL;
 
-    if(victim == NULL)
+    if (sched == &scheduler[0]) {
       actor = (pony_actor_t*)ponyint_mpmcq_pop(&inject);
-    else
-      actor = pop_global(victim);
+    }
+
+    if (actor == NULL)
+    {
+      scheduler_t* victim = choose_victim(sched);
+
+
+    //if(victim == NULL)
+      //actor = (pony_actor_t*)ponyint_mpmcq_pop(&inject);
+    //else
+      if (victim != NULL)
+        actor = pop(&scheduler[0]);
+
+      //if (actor != NULL)
+        //printf("not inject\n");
+    }
+    /*else
+    {
+       printf("ibject\n");
+    }*/
+
+      //actor = pop_global(victim);
+
 
     if(actor != NULL)
     {
+      //printf("GOT SOMETHING %p\n", sched);
       DTRACE3(WORK_STEAL_SUCCESSFUL, (uintptr_t)sched, (uintptr_t)victim, (uintptr_t)actor);
       break;
     }
 
     uint64_t tsc2 = ponyint_cpu_tick();
 
-    if(quiescent(sched, tsc, tsc2))
-    {
-      DTRACE2(WORK_STEAL_FAILURE, (uintptr_t)sched, (uintptr_t)victim);
-      return NULL;
-    }
+    //if(quiescent(sched, tsc, tsc2))
+    //{
+    //  DTRACE2(WORK_STEAL_FAILURE, (uintptr_t)sched, (uintptr_t)victim);
+    //  return NULL;
+   // }
 
     // If we have been passed an actor (implicitly, the cycle detector), and
     // enough time has elapsed without stealing or quiescing, return the actor
@@ -267,7 +292,7 @@ static pony_actor_t* steal(scheduler_t* sched, pony_actor_t* prev)
     }
   }
 
-  send_msg(0, SCHED_UNBLOCK, 0);
+  //send_msg(0, SCHED_UNBLOCK, 0);
   return actor;
 }
 
@@ -276,6 +301,7 @@ static pony_actor_t* steal(scheduler_t* sched, pony_actor_t* prev)
  */
 static void run(scheduler_t* sched)
 {
+  printf("SCHED 0 is %p\n", &scheduler[0]);
   pony_actor_t* actor = pop_global(sched);
   if (DTRACE_ENABLED(ACTOR_SCHEDULED) && actor != NULL) {
     DTRACE2(ACTOR_SCHEDULED, (uintptr_t)sched, (uintptr_t)actor);
@@ -299,7 +325,7 @@ static void run(scheduler_t* sched)
 
     // Run the current actor and get the next actor.
     bool reschedule = ponyint_actor_run(&sched->ctx, actor, PONY_SCHED_BATCH);
-    pony_actor_t* next = pop_global(sched);
+    pony_actor_t* next = pop(sched);
 
     if(reschedule)
     {

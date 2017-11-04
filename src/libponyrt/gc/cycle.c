@@ -922,7 +922,7 @@ void ponyint_cycle_block(pony_ctx_t* ctx, pony_actor_t* actor, gc_t* gc)
   m->delta = ponyint_gc_delta(gc);
   pony_assert(gc->delta == NULL);
 
-  pony_sendv(ctx, cycle_detector, &m->msg, &m->msg, false);
+  pony_sendv(ctx, cycle_detector, &m->msg, &m->msg, true);
 }
 
 void ponyint_cycle_unblock(pony_ctx_t* ctx, pony_actor_t* actor)

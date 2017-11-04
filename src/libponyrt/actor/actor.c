@@ -132,7 +132,7 @@ static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
     {
       DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
       actor->type->dispatch(ctx, actor, msg);
-      return false;
+      return true;
     }
 
     case ACTORMSG_CONF:
@@ -145,21 +145,21 @@ static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
         ponyint_cycle_ack(ctx, m->i);
       }
 
-      return false;
+      return true;
     }
 
     case ACTORMSG_BLOCK:
     {
       DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
       actor->type->dispatch(ctx, actor, msg);
-      return false;
+      return true;
     }
 
     case ACTORMSG_UNBLOCK:
     {
       DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
       actor->type->dispatch(ctx, actor, msg);
-      return false;
+      return true;
     }
 
     default:
@@ -200,10 +200,12 @@ static void try_gc(pony_ctx_t* ctx, pony_actor_t* actor)
 
 bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
 {
-  /*if (ponyint_is_muted(actor))
+  if (ponyint_is_muted(actor))
   {
     printf("%p is muted at start of run in %p\n", actor, ctx->scheduler);
-  }*/
+    if (ponyint_is_cycle(actor))
+      printf("MUTED IS CYCLE\n");
+  }
 
   pony_assert(!ponyint_is_muted(actor));
   ctx->current = actor;
@@ -303,6 +305,12 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
     set_flag(actor, FLAG_BLOCKED);
     unset_flag(actor, FLAG_RC_CHANGED);
     ponyint_cycle_block(ctx, actor, &actor->gc);
+      if(atomic_load_explicit(&actor->muted, memory_order_relaxed) > 0)
+      {
+        //printf("%p is bailing out due to mute in %p\n", actor, ctx->scheduler);
+        ponyint_mute_actor(actor);
+        return false;
+      }
   }
 
   bool empty = ponyint_messageq_markempty(&actor->q);
@@ -566,7 +574,7 @@ PONY_API void pony_chain(pony_msg_t* prev, pony_msg_t* next)
 PONY_API void pony_send(pony_ctx_t* ctx, pony_actor_t* to, uint32_t id)
 {
   pony_msg_t* m = pony_alloc_msg(POOL_INDEX(sizeof(pony_msg_t)), id);
-  pony_sendv(ctx, to, m, m, id <= ACTORMSG_APPLICATION_START);
+  pony_sendv(ctx, to, m, m, true);
 }
 
 PONY_API void pony_sendp(pony_ctx_t* ctx, pony_actor_t* to, uint32_t id,
@@ -576,7 +584,7 @@ PONY_API void pony_sendp(pony_ctx_t* ctx, pony_actor_t* to, uint32_t id,
     POOL_INDEX(sizeof(pony_msgp_t)), id);
   m->p = p;
 
-  pony_sendv(ctx, to, &m->msg, &m->msg, id <= ACTORMSG_APPLICATION_START);
+  pony_sendv(ctx, to, &m->msg, &m->msg, true);
 }
 
 PONY_API void pony_sendi(pony_ctx_t* ctx, pony_actor_t* to, uint32_t id,
@@ -586,7 +594,7 @@ PONY_API void pony_sendi(pony_ctx_t* ctx, pony_actor_t* to, uint32_t id,
     POOL_INDEX(sizeof(pony_msgi_t)), id);
   m->i = i;
 
-  pony_sendv(ctx, to, &m->msg, &m->msg, id <= ACTORMSG_APPLICATION_START);
+  pony_sendv(ctx, to, &m->msg, &m->msg, true);
 }
 
 #ifdef USE_ACTOR_CONTINUATIONS
@@ -696,7 +704,7 @@ PONY_API void pony_poll(pony_ctx_t* ctx)
 
 void ponyint_actor_setoverloaded(pony_actor_t* actor)
 {
-  pony_assert(!ponyint_is_cycle(actor));
+  //pony_assert(!ponyint_is_cycle(actor));
   set_flag(actor, FLAG_OVERLOADED);
   DTRACE1(ACTOR_OVERLOADED, (uintptr_t)actor);
 }

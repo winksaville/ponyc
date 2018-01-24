@@ -50,6 +50,9 @@ static bool set_scope(pass_opt_t* opt, ast_t* scope, ast_t* name, ast_t* value,
     case TK_EMBED:
     case TK_PARAM:
     case TK_MATCH_CAPTURE:
+      printf("set_scope: status=SYM_DEFINED\n");
+      printf("  name: "); ast_print(name, 200);
+      printf(" value: "); ast_print(value, 200);
       status = SYM_DEFINED;
       break;
 

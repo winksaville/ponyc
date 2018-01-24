@@ -374,8 +374,11 @@ bool expr_assign(pass_opt_t* opt, ast_t* ast)
     errorframe_append(&frame, &info);
 
     if(ast_checkflag(ast_type(right), AST_FLAG_INCOMPLETE))
+    {
+      printf("WINK3");
       ast_error_frame(&frame, right,
         "this might be possible if all fields were already defined");
+    }
 
     errorframe_report(&frame, opt->check.errors);
     ast_free_unattached(a_type);

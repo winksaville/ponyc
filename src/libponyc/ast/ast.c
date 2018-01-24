@@ -1070,11 +1070,19 @@ ast_t* ast_get(ast_t* ast, const char* name, sym_status_t* status)
       sym_status_t status2;
       ast_t* value = (ast_t*)symtab_find(ast->symtab, name, &status2);
 
-      if((status != NULL) && (*status == SYM_NONE))
+      if((status != NULL) && (*status == SYM_NONE)) {
         *status = status2;
+      }
 
-      if(value != NULL)
+      if(value != NULL) {
+        if(status != NULL) {
+          //printf("ast_get: value: status=%d status=%s\n", *status,
+          //    ((*status == SYM_DEFINED) ? "SYM_DEFINED" :
+          //        ((*status == SYM_UNDEFINED) ? "SYM_UNDEFINED" : "?")));
+          //ast_print(value, 800);
+        }
         return value;
+      }
     }
 
     ast = ast->parent;
@@ -1198,6 +1206,8 @@ void ast_consolidate_branches(ast_t* ast, size_t count)
       {
         // If we see it as defined from a parent scope, always end up defined.
         // If we it's defined in all the branched, it's also defined.
+        printf("ast_consolidate_branches: assigning SYM_DEFINED\n");
+        ast_print(ast->parent, 200);
         sym->status = SYM_DEFINED;
       } else {
         // It wasn't defined in all branches. Stay undefined.
@@ -1631,7 +1641,7 @@ void ast_fprint(FILE* fp, ast_t* ast, size_t width)
     return;
 
   print(fp, ast, 0, NOT_SPECIAL, width);
-  fprintf(fp, "\n");
+  //fprintf(fp, "\n");
 }
 
 void ast_fprintverbose(FILE* fp, ast_t* ast)

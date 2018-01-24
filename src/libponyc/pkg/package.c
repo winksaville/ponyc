@@ -857,6 +857,7 @@ void package_clear_magic(pass_opt_t* opt)
 
 ast_t* program_load(const char* path, pass_opt_t* opt)
 {
+  printf("progam_load:+\n");
   ast_t* program = ast_blank(TK_PROGRAM);
   ast_scope(program);
 
@@ -867,6 +868,7 @@ ast_t* program_load(const char* path, pass_opt_t* opt)
     package_load(program, path, opt) == NULL)
   {
     ast_free(program);
+    printf("progam_load:- Error\n");
     return NULL;
   }
 
@@ -877,15 +879,18 @@ ast_t* program_load(const char* path, pass_opt_t* opt)
   if(!ast_passes_program(program, opt))
   {
     ast_free(program);
+    printf("progam_load:- Error\n");
     return NULL;
   }
 
+  printf("progam_load:- OK\n");
   return program;
 }
 
 
 ast_t* package_load(ast_t* from, const char* path, pass_opt_t* opt)
 {
+  printf("package_load:+ path=%s\n", path);
   pony_assert(from != NULL);
 
   magic_package_t* magic = find_magic_package(path, opt);
@@ -895,6 +900,7 @@ ast_t* package_load(ast_t* from, const char* path, pass_opt_t* opt)
 
   if(magic == NULL)
   {
+    printf("package_load: path=%s magic == NULL\n", path);
     // Lookup (and hence normalise) path
     bool is_relative = false;
     full_path = find_path(from, path, &is_relative, opt);
@@ -930,31 +936,46 @@ ast_t* package_load(ast_t* from, const char* path, pass_opt_t* opt)
   ast_t* package = ast_get(program, full_path, NULL);
 
   // Package already loaded
-  if(package != NULL)
+  if(package != NULL) {
+    printf("package_load:- path=%s package is already loaded\n", path);
     return package;
+  }
 
+  printf("package_load: path=%s invoke create_package full_path=%s qualified_name=%s\n", path, full_path, qualified_name);
   package = create_package(program, full_path, qualified_name, opt);
+  printf("package_load: path=%s package=%s\n", path, ast_print_type(package));
 
-  if(opt->verbosity >= VERBOSITY_INFO)
-    fprintf(stderr, "Building %s -> %s\n", path, full_path);
+  //if(opt->verbosity >= VERBOSITY_INFO)
+  //  fprintf(stderr, "Building %s -> %s\n", path, full_path);
 
   if(magic != NULL)
   {
+    printf("package_load: path=%s magic != NULL\n", path);
     if(magic->src != NULL)
     {
-      if(!parse_source_code(package, magic->src, opt))
+      printf("package_load: path=%s magic->src != NULL invoke parse_source_code magic->src=%s\n", path, magic->src);
+      if(!parse_source_code(package, magic->src, opt)) {
+        printf("package_load:- path=%s magic->src != NULL could NOT parse_source_code package=NULL\n", path);
         return NULL;
+      }
     } else if(magic->mapped_path != NULL) {
-      if(!parse_files_in_dir(package, magic->mapped_path, opt))
+      printf("package_load: path=%s magic->mapped_path != NULL invoke parse_files_in_dir magic->mapped_path=%s\n", path, magic->mapped_path);
+      if(!parse_files_in_dir(package, magic->mapped_path, opt)) {
+        printf("package_load:- path=%s could NOT parse_files_in_dir package=NULL\n", path);
         return NULL;
+      }
     } else {
+      printf("package_load:- path=%s can NOT load package package=NULL\n", path);
       return NULL;
     }
   }
   else
   {
-    if(!parse_files_in_dir(package, full_path, opt))
+    printf("package_load: path=%s magic == NULL invoke parse_file_in_dir full_path=%s\n", path, full_path);
+    if(!parse_files_in_dir(package, full_path, opt)) {
+      printf("package_load:- path=%s parse_files_in_dir failed package=NULL\n", path);
       return NULL;
+    }
   }
 
   if(ast_child(package) == NULL)
@@ -968,9 +989,11 @@ ast_t* package_load(ast_t* from, const char* path, pass_opt_t* opt)
   {
     // If these passes failed, don't run future passes.
     ast_setflag(package, AST_FLAG_PRESERVE);
+    printf("package_load:- path=%s ast_passes_subtree failed package=NULL\n", path);
     return NULL;
   }
 
+  printf("package_load:- path=%s package=%p\n", path, package);
   return package;
 }
 

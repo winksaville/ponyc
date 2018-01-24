@@ -247,8 +247,11 @@ static bool check_arg_types(pass_opt_t* opt, ast_t* params, ast_t* positional,
           "note that arguments must be separated by a comma");
 
       if(ast_checkflag(ast_type(arg), AST_FLAG_INCOMPLETE))
+      {
+        printf("WINK1");
         ast_error_frame(&frame, arg,
           "this might be possible if all fields were already defined");
+      }
 
       errorframe_report(&frame, opt->check.errors);
       ast_free_unattached(a_type);
@@ -395,6 +398,13 @@ static bool check_receiver_cap(pass_opt_t* opt, ast_t* ast, bool* recovered)
 
   if(!ok)
   {
+    printf("WINK2+ a_type\n");
+    printf("ast:  "); ast_print(ast, 800);
+    printf("type: "); ast_print(type, 800);
+    printf("lhs:  "); ast_print(lhs, 800);
+    printf("a_type: "); ast_print(a_type, 800);
+    printf("t_type: "); ast_print(t_type, 800);
+    printf("r_type: "); ast_print(r_type, 800);
     errorframe_t frame = NULL;
 
     ast_error_frame(&frame, ast,
@@ -404,19 +414,25 @@ static bool check_receiver_cap(pass_opt_t* opt, ast_t* ast, bool* recovered)
     ast_error_frame(&frame, cap,
       "target type: %s", ast_print_type(t_type));
     errorframe_append(&frame, &info);
+    printf("WINK2.1\n");
 
     if(ast_checkflag(ast_type(method_receiver(lhs)), AST_FLAG_INCOMPLETE))
+    {
+      printf("WINK2.2\n");
       ast_error_frame(&frame, method_receiver(lhs),
         "this might be possible if all fields were already defined");
+    }
 
     if(!can_recover && cap_recover && is_subtype(r_type, t_type, NULL, opt))
     {
+      printf("WINK2.3\n");
       ast_error_frame(&frame, ast,
         "this would be possible if the arguments and return value "
         "were all sendable");
     }
 
     errorframe_report(&frame, opt->check.errors);
+    printf("WINK2-\n");
   }
 
   if(a_type != r_type)

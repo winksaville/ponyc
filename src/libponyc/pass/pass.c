@@ -157,11 +157,13 @@ static bool check_limit(ast_t** astp, pass_opt_t* options, pass_id pass,
 static bool visit_pass(ast_t** astp, pass_opt_t* options, pass_id last_pass,
   bool* out_r, pass_id pass, ast_visit_t pre_fn, ast_visit_t post_fn)
 {
+  //printf("visit_pass:+ last_pass=%s pass_id=%s\n", pass_name(last_pass), pass_name(pass));
   pony_assert(out_r != NULL);
 
   if(!check_limit(astp, options, pass, last_pass))
   {
     *out_r = true;
+    //printf("visit_pass:- last_pass=%s pass_id=%s done\n", pass_name(last_pass), pass_name(pass));
     return false;
   }
 
@@ -171,29 +173,44 @@ static bool visit_pass(ast_t** astp, pass_opt_t* options, pass_id last_pass,
   if(ast_visit(astp, pre_fn, post_fn, options, pass) != AST_OK)
   {
     *out_r = false;
+    //printf("visit_pass:- last_pass=%s pass_id=%s done\n", pass_name(last_pass), pass_name(pass));
     return false;
   }
 
+  //printf("visit_pass:- last_pass=%s pass_id=%s continue\n", pass_name(last_pass), pass_name(pass));
   return true;
 }
 
 
+const char* source_name(source_t* source) {
+  return (source->file != NULL) ? source->file : source->m;
+}
+
 bool module_passes(ast_t* package, pass_opt_t* options, source_t* source)
 {
+  printf("module_passes:+ source=%s limit=%s\n", source_name(source), pass_name(options->limit));
   if(!pass_parse(package, source, options->check.errors,
-    options->allow_test_symbols, options->parse_trace))
+    options->allow_test_symbols, options->parse_trace)) {
+    printf("module_passes:- source=%s pass_parse Error done\n", source_name(source));
     return false;
+  }
 
-  if(options->limit < PASS_SYNTAX)
+  if(options->limit < PASS_SYNTAX) {
+    printf("module_passes:- source=%s limit=%s < PASS_SYNTAX continue\n", source_name(source), pass_name(options->limit));
     return true;
+  }
 
   ast_t* module = ast_child(package);
 
-  if(ast_visit(&module, pass_syntax, NULL, options, PASS_SYNTAX) != AST_OK)
+  if(ast_visit(&module, pass_syntax, NULL, options, PASS_SYNTAX) != AST_OK) {
+    printf("module_passes:- source=%s ast_visit != AST_OK done\n", source_name(source));
     return false;
+  }
 
   if(options->check_tree)
     check_tree(module, options);
+
+  printf("module_passes:- source=%s continue\n", source_name(source));
   return true;
 }
 
@@ -201,6 +218,7 @@ bool module_passes(ast_t* package, pass_opt_t* options, source_t* source)
 // Peform the AST passes on the given AST up to the specified last pass
 static bool ast_passes(ast_t** astp, pass_opt_t* options, pass_id last)
 {
+  //printf("ast_passes: pass_id=%s\n", pass_name(last));
   pony_assert(astp != NULL);
   bool r;
 
@@ -270,12 +288,14 @@ static bool ast_passes(ast_t** astp, pass_opt_t* options, pass_id last)
 
 bool ast_passes_program(ast_t* ast, pass_opt_t* options)
 {
+  printf("ast_passes_program:\n");
   return ast_passes(&ast, options, PASS_ALL);
 }
 
 
 bool ast_passes_type(ast_t** astp, pass_opt_t* options, pass_id last_pass)
 {
+  //printf("ast_passes_type: last_pass=%s\n", pass_name(last_pass));
   ast_t* ast = *astp;
 
   pony_assert(ast_id(ast) == TK_ACTOR || ast_id(ast) == TK_CLASS ||
@@ -303,21 +323,29 @@ bool ast_passes_type(ast_t** astp, pass_opt_t* options, pass_id last_pass)
 
 bool ast_passes_subtree(ast_t** astp, pass_opt_t* options, pass_id last_pass)
 {
+  //printf("ast_passes_subtree: last_pass=%s\n", pass_name(last_pass));
   return ast_passes(astp, options, last_pass);
 }
 
 
 bool generate_passes(ast_t* program, pass_opt_t* options)
 {
-  if(options->limit < PASS_REACH)
+  printf("generate_passes:+\n");
+  if(options->limit < PASS_REACH) {
+    printf("generate_passes:- return true options->limit=%s < PASS_REACH\n", pass_name(options->limit));
     return true;
+  }
 
-  return codegen(program, options);
+  printf("generate_passes: invoke codegen options->limit=%s\n", pass_name(options->limit));
+  bool ret = codegen(program, options);
+  printf("generate_passes:- ret=%d\n", ret);
+  return ret;
 }
 
 
 void ast_pass_record(ast_t* ast, pass_id pass)
 {
+  //printf("ast_pass_record: pass=%s\n", pass_name(pass));
   pony_assert(ast != NULL);
 
   if(pass == PASS_ALL)
@@ -331,6 +359,7 @@ void ast_pass_record(ast_t* ast, pass_id pass)
 ast_result_t ast_visit(ast_t** ast, ast_visit_t pre, ast_visit_t post,
   pass_opt_t* options, pass_id pass)
 {
+  //printf("ast_visit: pass=%s\n", pass_name(pass));
   pony_assert(ast != NULL);
   pony_assert(*ast != NULL);
 
@@ -440,6 +469,7 @@ ast_result_t ast_visit(ast_t** ast, ast_visit_t pre, ast_visit_t post,
 ast_result_t ast_visit_scope(ast_t** ast, ast_visit_t pre, ast_visit_t post,
   pass_opt_t* options, pass_id pass)
 {
+  //printf("ast_visit_scope: pass=%s\n", pass_name(pass));
   typecheck_t* t = &options->check;
   ast_t* module = ast_nearest(*ast, TK_MODULE);
   ast_t* package = ast_parent(module);

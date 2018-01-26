@@ -189,53 +189,6 @@ static bool valid_reference(pass_opt_t* opt, ast_t* ast, sym_status_t status)
   return false;
 }
 
-static const char* suggest_alt_name(ast_t* ast, const char* name)
-{
-  pony_assert(ast != NULL);
-  pony_assert(name != NULL);
-
-  size_t name_len = strlen(name);
-
-  if(is_name_private(name))
-  {
-    // Try without leading underscore
-    const char* try_name = stringtab(name + 1);
-
-    if(ast_get(ast, try_name, NULL) != NULL)
-      return try_name;
-  }
-  else
-  {
-    // Try with a leading underscore
-    char* buf = (char*)ponyint_pool_alloc_size(name_len + 2);
-    buf[0] = '_';
-    strncpy(buf + 1, name, name_len + 1);
-    const char* try_name = stringtab_consume(buf, name_len + 2);
-
-    if(ast_get(ast, try_name, NULL) != NULL)
-      return try_name;
-  }
-
-  // Try with a different case (without crossing type/value boundary)
-  ast_t* case_ast = ast_get_case(ast, name, NULL);
-  if(case_ast != NULL)
-  {
-    ast_t* id = case_ast;
-
-    if(ast_id(id) != TK_ID)
-      id = ast_child(id);
-
-    pony_assert(ast_id(id) == TK_ID);
-    const char* try_name = ast_name(id);
-
-    if(ast_get(ast, try_name, NULL) != NULL)
-      return try_name;
-  }
-
-  // Give up
-  return NULL;
-}
-
 static bool refer_this(pass_opt_t* opt, ast_t* ast)
 {
   pony_assert(ast_id(ast) == TK_THIS);
@@ -265,34 +218,19 @@ bool refer_reference(pass_opt_t* opt, ast_t** astp)
 
   const char* name = ast_name(ast_child(ast));
 
-  // Handle the special case of the "don't care" reference (`_`)
-  if(is_name_dontcare(name))
-  {
-    ast_setid(ast, TK_DONTCAREREF);
-
-    return true;
-  }
-
   // Everything we reference must be in scope, so we can use ast_get for lookup.
   sym_status_t status;
   ast_t* def = ast_get(ast, ast_name(ast_child(ast)), &status);
-
-  // If nothing was found, we fail, but also try to suggest an alternate name.
-  if(def == NULL)
+  if(def != NULL)
   {
-    const char* alt_name = suggest_alt_name(ast, name);
-
-    if(alt_name == NULL)
-      ast_error(opt->check.errors, ast, "can't find declaration of '%s'", name);
-    else
-      ast_error(opt->check.errors, ast,
-        "can't find declaration of '%s', did you mean '%s'?", name, alt_name);
-
+    // Save the found definition in the AST, so we
+    // don't need to look it up again.
+    ast_setdata(ast, (void*)def);
+  } else {
+    // Failing as nothing was found, but also try to suggest an alternate name.
+    pass_suggest_alt_name(opt, ast, name);
     return false;
   }
-
-  // Save the found definition in the AST, so we don't need to look it up again.
-  ast_setdata(ast, (void*)def);
 
   switch(ast_id(def))
   {
@@ -325,25 +263,6 @@ bool refer_reference(pass_opt_t* opt, ast_t** astp)
       ast_append(ast, ast_from(ast, TK_NONE)); // 3rd child: type args
 
       return true;
-    }
-
-    case TK_FVAR:
-    case TK_FLET:
-    case TK_EMBED:
-    case TK_NEW:
-    case TK_BE:
-    case TK_FUN:
-    {
-      // Transform to "this.f".
-      ast_t* dot = ast_from(ast, TK_DOT);
-      ast_add(dot, ast_child(ast));
-
-      ast_t* self = ast_from(ast, TK_THIS);
-      ast_add(dot, self);
-
-      ast_replace(astp, dot);
-      ast = *astp;
-      return refer_this(opt, self) && refer_dot(opt, ast);
     }
 
     case TK_PARAM:
@@ -443,14 +362,7 @@ static bool refer_this_dot(pass_opt_t* opt, ast_t* ast)
   // If nothing was found, we fail, but also try to suggest an alternate name.
   if(def == NULL)
   {
-    const char* alt_name = suggest_alt_name(ast, name);
-
-    if(alt_name == NULL)
-      ast_error(opt->check.errors, ast, "can't find declaration of '%s'", name);
-    else
-      ast_error(opt->check.errors, ast,
-        "can't find declaration of '%s', did you mean '%s'?", name, alt_name);
-
+    pass_suggest_alt_name(opt, ast, name);
     return false;
   }
 

@@ -1,4 +1,5 @@
 #include "pass.h"
+#include "../ast/id.h"
 #include "../ast/parser.h"
 #include "../ast/treecheck.h"
 #include "syntax.h"
@@ -11,6 +12,9 @@
 #if !defined(NDEBUG)
 #include "dummy.h"
 #endif
+#include "mark_dont_care_refs.h"
+#include "detect_undefined_refs.h"
+#include "transform_ref_to_this.h"
 #include "refer.h"
 #include "expr.h"
 #include "verify.h"
@@ -62,6 +66,9 @@ const char* pass_name(pass_id pass)
 #if !defined(NDEBUG)
     case PASS_DUMMY: return "dummy";
 #endif
+    case PASS_MARK_DONT_CARE_REFS: return "mark_dont_care_refs";
+    case PASS_DETECT_UNDEFINED_REFS: return "detect_undefined_refs";
+    case PASS_TRANSFORM_REF_TO_THIS: return "transform_ref_to_this";
     case PASS_REFER: return "refer";
     case PASS_EXPR: return "expr";
     case PASS_VERIFY: return "verify";
@@ -243,6 +250,22 @@ static bool ast_passes(ast_t** astp, pass_opt_t* options, pass_id last)
     pass_dummy))
     return r;
 #endif
+
+  if(!visit_pass(astp, options, last, &r, PASS_MARK_DONT_CARE_REFS, NULL,
+    pass_mark_dont_care_refs))
+    return r;
+
+  if(!visit_pass(astp, options, last, &r, PASS_DETECT_UNDEFINED_REFS, NULL,
+    pass_detect_undefined_refs))
+    return r;
+
+  if(!visit_pass(astp, options, last, &r, PASS_TRANSFORM_REF_TO_THIS, NULL,
+    pass_transform_ref_to_this))
+    return r;
+
+  if(!visit_pass(astp, options, last, &r, PASS_REFER, pass_pre_refer,
+    pass_refer))
+    return r;
 
   if(!visit_pass(astp, options, last, &r, PASS_REFER, pass_pre_refer,
     pass_refer))
@@ -469,4 +492,72 @@ ast_result_t ast_visit_scope(ast_t** ast, ast_visit_t pre, ast_visit_t post,
   frame_pop(t);
 
   return ret;
+}
+
+static const char* suggest_alt_name(ast_t* ast, const char* name)
+{
+  pony_assert(ast != NULL);
+  pony_assert(name != NULL);
+
+  size_t name_len = strlen(name);
+
+  if(is_name_private(name))
+  {
+    // Try without leading underscore
+    const char* try_name = stringtab(name + 1);
+
+    if(ast_get(ast, try_name, NULL) != NULL)
+      return try_name;
+  }
+  else
+  {
+    // Try with a leading underscore
+    char* buf = (char*)ponyint_pool_alloc_size(name_len + 2);
+    buf[0] = '_';
+    strncpy(buf + 1, name, name_len + 1);
+    const char* try_name = stringtab_consume(buf, name_len + 2);
+
+    if(ast_get(ast, try_name, NULL) != NULL)
+      return try_name;
+  }
+
+  // Try with a different case (without crossing type/value boundary)
+  ast_t* case_ast = ast_get_case(ast, name, NULL);
+  if(case_ast != NULL)
+  {
+    ast_t* id = case_ast;
+
+    if(ast_id(id) != TK_ID)
+      id = ast_child(id);
+
+    pony_assert(ast_id(id) == TK_ID);
+    const char* try_name = ast_name(id);
+
+    if(ast_get(ast, try_name, NULL) != NULL)
+      return try_name;
+  }
+
+  // Give up
+  return NULL;
+}
+
+void pass_suggest_alt_name(pass_opt_t* opt, ast_t* ast, const char* name)
+{
+  const char* alt_name = suggest_alt_name(ast, name);
+  if(alt_name == NULL)
+    ast_error(opt->check.errors, ast, "can't find declaration of '%s'", name);
+  else
+    ast_error(opt->check.errors, ast,
+      "can't find declaration of '%s', did you mean '%s'?", name, alt_name);
+}
+
+ast_result_t pass_check_result(bool ok, pass_opt_t* options)
+{
+  if(ok)
+  {
+    return AST_OK;
+  } else {
+    pony_assert(errors_get_count(options->check.errors) > 0);
+    return AST_ERROR;
+  }
 }

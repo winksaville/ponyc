@@ -232,6 +232,9 @@ typedef enum pass_id
 #if !defined(NDEBUG)
   PASS_DUMMY,
 #endif
+  PASS_MARK_DONT_CARE_REFS,
+  PASS_DETECT_UNDEFINED_REFS,
+  PASS_TRANSFORM_REF_TO_THIS,
   PASS_REFER,
   PASS_EXPR,
   PASS_VERIFY,
@@ -265,6 +268,9 @@ typedef enum pass_id
     "    =traits\n" \
     "    =docs\n" \
     PASS_HELP_DUMMY \
+    "    =mark_dont_care_refs\n" \
+    "    =detect_undefined_refs\n" \
+    "    =transform_ref_to_this\n" \
     "    =refer\n" \
     "    =expr\n" \
     "    =verify\n" \
@@ -413,6 +419,9 @@ ast_result_t ast_visit(ast_t** ast, ast_visit_t pre, ast_visit_t post,
 ast_result_t ast_visit_scope(ast_t** ast, ast_visit_t pre, ast_visit_t post,
   pass_opt_t* options, pass_id pass);
 
+void pass_suggest_alt_name(pass_opt_t* opt, ast_t* ast, const char* name);
+
+ast_result_t pass_check_result(bool ok, pass_opt_t* options);
 
 PONY_EXTERN_C_END
 

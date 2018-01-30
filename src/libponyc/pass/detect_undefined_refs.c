@@ -1,14 +1,14 @@
 #include "detect_undefined_refs.h"
 #include "ponyassert.h"
 
-// Change to true to see the debug output
-#define LOCAL_DBG_PASS false
-#include "dbg_pass.h"
+// Uncomment to enable
+//#define DBG_AST_ENABLED true
+#include "../dbg/dbg_ast.h"
 
 static bool detect_undefined_refs(pass_opt_t* opt, ast_t* ast)
 {
   bool result;
-  DAPE(ast);
+  DASTE(ast);
 
   const char* name = ast_name(ast_child(ast));
 
@@ -27,13 +27,13 @@ static bool detect_undefined_refs(pass_opt_t* opt, ast_t* ast)
     result = false;
   }
 
-  DAPXR(ast, result);
+  DASTXR(result, ast);
   return result;
 }
 
 ast_result_t pass_detect_undefined_refs(ast_t** astp, pass_opt_t* options)
 {
-  DBGE();
+  DPLE();
   ast_t* ast = *astp;
 
   bool r = true;
@@ -45,10 +45,10 @@ ast_result_t pass_detect_undefined_refs(ast_t** astp, pass_opt_t* options)
       break;
     }
 
-    default: {DAPXVS(ast, ast_id(ast), "default");}
+    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
   }
 
   ast_result_t result = pass_check_result(r, options);
-  DBGXR(result);
+  DPLX("r=%d", result);
   return result;
 }

@@ -1,15 +1,15 @@
 #include "transform_ref_to_this.h"
 #include "ponyassert.h"
 
-// Change to true to see the debug output
-#define LOCAL_DBG_PASS false
-#include "dbg_pass.h"
+// Uncomment to enable
+//#define DBG_AST_ENABLED true
+#include "../dbg/dbg_ast.h"
 
 static bool transform_ref_to_this(pass_opt_t* opt, ast_t** astp)
 {
   UNUSED(opt);
   ast_t* ast = *astp;
-  DAPE(ast);
+  DASTE(ast);
 
   // Assume everything we reference is in scope
   // as pass_detect_undefined_refs was successful
@@ -41,13 +41,13 @@ static bool transform_ref_to_this(pass_opt_t* opt, ast_t** astp)
     default: {}
   }
 
-  DAPXR(ast, true);
+  DASTXR(true, ast);
   return true;
 }
 
 ast_result_t pass_transform_ref_to_this(ast_t** astp, pass_opt_t* options)
 {
-  DBGE();
+  DPLE();
   ast_t* ast = *astp;
 
   bool r = true;
@@ -55,10 +55,10 @@ ast_result_t pass_transform_ref_to_this(ast_t** astp, pass_opt_t* options)
   {
     case TK_REFERENCE: r = transform_ref_to_this(options, astp); break;
 
-    default: {DAPXVS(ast, ast_id(ast), "default");}
+    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
   }
 
   ast_result_t result = pass_check_result(r, options);
-  DBGXR(result);
+  DPLX("r=%d", result);
   return result;
 }

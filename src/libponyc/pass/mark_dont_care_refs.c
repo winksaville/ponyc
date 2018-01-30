@@ -1,14 +1,14 @@
 #include "mark_dont_care_refs.h"
 #include "../ast/id.h"
 
-// Change to true to see the debug output
-#define LOCAL_DBG_PASS false
-#include "dbg_pass.h"
+// Uncomment to enable
+//#define DBG_AST_ENABLED true
+#include "../dbg/dbg_ast.h"
 
 static bool mark_dont_care_refs(pass_opt_t* opt, ast_t* ast)
 {
   UNUSED(opt);
-  DAPE(ast);
+  DASTE(ast);
 
   const char* name = ast_name(ast_child(ast));
   if(is_name_dontcare(name))
@@ -16,14 +16,14 @@ static bool mark_dont_care_refs(pass_opt_t* opt, ast_t* ast)
     ast_setid(ast, TK_DONTCAREREF);
   }
 
-  DAPXR(ast, true);
+  DASTXR(true, ast);
   return true;
 }
 
 ast_result_t pass_mark_dont_care_refs(ast_t** astp, pass_opt_t* options)
 {
   UNUSED(options);
-  DBGE();
+  DPLE();
   ast_t* ast = *astp;
 
   bool r = true;
@@ -31,10 +31,10 @@ ast_result_t pass_mark_dont_care_refs(ast_t** astp, pass_opt_t* options)
   {
     case TK_REFERENCE: r = mark_dont_care_refs(options, ast); break;
 
-    default: {DAPXVS(ast, ast_id(ast), "default");}
+    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
   }
 
   ast_result_t result = pass_check_result(r, options);
-  DBGXR(result);
+  DPLX("r=%d", result);
   return result;
 }

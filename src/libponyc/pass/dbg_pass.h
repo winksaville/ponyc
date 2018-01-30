@@ -26,8 +26,8 @@ PONY_EXTERN_C_BEGIN
 
 #if LOCAL_DBG_PASS == true
 
-  #define DBG(s)  dbg_pass_fprint(stdout, __FUNCTION__, " ",  RV_IGNORE, s)
-  #define DBGS(s)  dbg_pass_fprint(stdout, __FUNCTION__, " ",  RV_IGNORE, s)
+  #define DB(format, ...)  fprintf(stdout, "" format, ## __VA_ARGS__)
+  #define DBG(format, ...)  fprintf(stdout, "%s:  " format, __FUNCTION__, ## __VA_ARGS__)
 
   #define DBGE() dbg_pass_fprint(stdout, __FUNCTION__, "+", RV_IGNORE, NULL)
   #define DBGX() dbg_pass_fprint(stdout, __FUNCTION__, "-", RV_IGNORE, NULL)
@@ -79,8 +79,8 @@ PONY_EXTERN_C_BEGIN
       stdout, __FUNCTION__, str(ast), ast, AST_PRINT_WIDTH)
 
 #else
-  #define DBG(s) do {UNUSED(s);} while(0)
-  #define DBGS(s) do {UNUSED(s);} while(0)
+  #define DB(format, ...) do {UNUSED(format);} while(0)
+  #define DBG(format, ...) do {UNUSED(format);} while(0)
 
   #define DBGE() do {} while(0)
   #define DBGX() do {} while(0)

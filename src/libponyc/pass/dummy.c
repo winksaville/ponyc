@@ -6,27 +6,28 @@
 #include <string.h>
 
 // Change to true to see the debug output
-#define LOCAL_DBG_PASS false
+#define LOCAL_DBG_PASS true
 #include "dbg_pass.h"
 
 static void test1_dbg()
 {
   DBGE();
-  DBG("Between DBGE and DBGX");
+  DB("No function name ");
+  DB("v=%d\n", 123);
   DBGX();
 }
 
 static void test2_dbg()
 {
   DBGES("Entering");
-  DBGS("Between DBGE and DBGX");
+  DBG("Between DBGE and DBGX\n");
   DBGXS("Exiting");
 }
 
 static void test3_dbg()
 {
   DBGES("Entering");
-  DBGS("Between DBGE and DBGX");
+  DBG("Between %s and %s\n", "DBGE", "DBGX");
   DBGXRS(3, "Exiting");
 }
 

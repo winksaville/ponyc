@@ -4,17 +4,15 @@
 #include <platform.h>
 #include "../ast/ast.h"
 #include "../pass/pass.h"
+#include "../dbg/dbg_util.h"
 
 #if !defined(DBG_AST_ENABLED)
 #define DBG_AST_ENABLED false
 #endif
 
-#if !defined(DBG_ENABLED)
-#define DBG_ENABLED DBG_AST_ENABLED
+#if !defined(DBG_FILE)
+#define DBG_FILE stdout
 #endif
-#include "../dbg/dbg.h"
-
-PONY_EXTERN_C_BEGIN
 
 #if !defined(AST_PRINT_WIDTH)
 #define AST_PRINT_WIDTH 200
@@ -25,7 +23,7 @@ PONY_EXTERN_C_BEGIN
   { \
     if(DBG_AST_ENABLED) \
     { \
-      DPN("%s ", str(ast)); \
+      fprintf(DBG_FILE, "%s:  ", __FUNCTION__); \
       ast_print(ast, AST_PRINT_WIDTH); \
     } \
   } \
@@ -36,40 +34,8 @@ PONY_EXTERN_C_BEGIN
   { \
     if(DBG_AST_ENABLED) \
     { \
-      DPN("%s " format, str(ast), ## __VA_ARGS__); \
-      ast_print(ast, AST_PRINT_WIDTH); \
-    } \
-  } \
-  while(0)
-
-#define DASTE(ast) \
-  do \
-  { \
-    if(DBG_AST_ENABLED) \
-    { \
-      DPE("%s ", str(ast)); \
-      ast_print(ast, AST_PRINT_WIDTH); \
-    } \
-  } \
-  while(0)
-
-#define DASTX(ast) \
-  do \
-  { \
-    if(DBG_AST_ENABLED) \
-    { \
-      DPX("%s ", str(ast)); \
-      ast_print(ast, AST_PRINT_WIDTH); \
-    } \
-  } \
-  while(0)
-
-#define DASTXR(r, ast) \
-  do \
-  { \
-    if(DBG_AST_ENABLED) \
-    { \
-      DPX("r=%d %s ", r, str(ast)); \
+      fprintf(DBG_FILE, "%s:  %s" format, __FUNCTION__, dbg_str(ast), \
+                ## __VA_ARGS__); \
       ast_print(ast, AST_PRINT_WIDTH); \
     } \
   } \
@@ -83,7 +49,7 @@ PONY_EXTERN_C_BEGIN
     { \
       for(int i=0; (ast != NULL) && (i < number); i++) \
       { \
-        fprintf(DBG_FILE, "%s: %s[%d]: ", __FUNCTION__, str(ast), -i); \
+        fprintf(DBG_FILE, "%s: %s[%d]: ", __FUNCTION__, dbg_str(ast), -i); \
         ast_fprint(DBG_FILE, ast, AST_PRINT_WIDTH); \
         ast = ast_parent(ast); \
       } \
@@ -101,7 +67,7 @@ PONY_EXTERN_C_BEGIN
       ast_t* child = ast_child(parent); \
       for(int i=0; (child != NULL); i++) \
       { \
-        fprintf(DBG_FILE, "%s %s[%d]: ", __FUNCTION__, str(ast), i); \
+        fprintf(DBG_FILE, "%s %s[%d]: ", __FUNCTION__, dbg_str(ast), i); \
         ast_fprint(DBG_FILE, child, AST_PRINT_WIDTH); \
         child = ast_sibling(child); \
       } \

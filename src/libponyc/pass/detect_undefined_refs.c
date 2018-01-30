@@ -2,13 +2,18 @@
 #include "ponyassert.h"
 
 // Uncomment to enable
+//#define DBG_ENABLED true
+#include "../dbg/dbg.h"
+
+// Uncomment to enable
 //#define DBG_AST_ENABLED true
 #include "../dbg/dbg_ast.h"
 
 static bool detect_undefined_refs(pass_opt_t* opt, ast_t* ast)
 {
   bool result;
-  DASTE(ast);
+  DPLE();
+  DAST(ast);
 
   const char* name = ast_name(ast_child(ast));
 
@@ -27,7 +32,7 @@ static bool detect_undefined_refs(pass_opt_t* opt, ast_t* ast)
     result = false;
   }
 
-  DASTXR(result, ast);
+  DPLX("r=%d", result);
   return result;
 }
 

@@ -5,15 +5,6 @@
 #include "../ast/ast.h"
 #include "../pass/pass.h"
 
-PONY_EXTERN_C_BEGIN
-
-#define xstr(x) str(s)
-#define str(s) #s
-
-#if !defined(UNUSED)
-#define UNUSED(x) (void)x
-#endif
-
 #if !defined(DBG_FILE)
 #define DBG_FILE stdout
 #endif
@@ -71,12 +62,6 @@ PONY_EXTERN_C_BEGIN
   DFP(DBG_FILE, "%s:- " format, __FUNCTION__, ## __VA_ARGS__)
 
 /**
- * eXit routine print leading functionName:+ r=result without trailing new line
- */
-#define DPXR(r, format, ...) \
-  DFP(DBG_FILE, "%s:- r=%d " format, __FUNCTION__, r, ## __VA_ARGS__)
-
-/**
  * Enter routine print leading functionName:+ with trailing new line
  */
 #define DPLE(format, ...) \
@@ -87,11 +72,5 @@ PONY_EXTERN_C_BEGIN
  */
 #define DPLX(format, ...) \
   DFPL(DBG_FILE, "%s:- " format "\n", __FUNCTION__, ## __VA_ARGS__)
-
-/**
- * eXit routine print leading functionName:+ r=result without trailing new line
- */
-#define DPLXR(r, format, ...) \
-  DFP(DBG_FILE, "%s:- r=%d " format "\n", __FUNCTION__, r, ## __VA_ARGS__)
 
 #endif

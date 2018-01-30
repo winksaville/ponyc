@@ -2,14 +2,19 @@
 #include "ponyassert.h"
 
 // Uncomment to enable
+//#define DBG_ENABLED true
+#include "../dbg/dbg.h"
+
+// Uncomment to enable
 //#define DBG_AST_ENABLED true
 #include "../dbg/dbg_ast.h"
 
 static bool transform_ref_to_this(pass_opt_t* opt, ast_t** astp)
 {
-  UNUSED(opt);
+  MAYBE_UNUSED(opt);
   ast_t* ast = *astp;
-  DASTE(ast);
+  DPLE();
+  DAST(ast);
 
   // Assume everything we reference is in scope
   // as pass_detect_undefined_refs was successful
@@ -41,7 +46,7 @@ static bool transform_ref_to_this(pass_opt_t* opt, ast_t** astp)
     default: {}
   }
 
-  DASTXR(true, ast);
+  DPLX("r=%d", true);
   return true;
 }
 

@@ -2,13 +2,18 @@
 #include "../ast/id.h"
 
 // Uncomment to enable
+//#define DBG_ENABLED true
+#include "../dbg/dbg.h"
+
+// Uncomment to enable
 //#define DBG_AST_ENABLED true
 #include "../dbg/dbg_ast.h"
 
 static bool mark_dont_care_refs(pass_opt_t* opt, ast_t* ast)
 {
-  UNUSED(opt);
-  DASTE(ast);
+  MAYBE_UNUSED(opt);
+  DPLE();
+  DAST(ast);
 
   const char* name = ast_name(ast_child(ast));
   if(is_name_dontcare(name))
@@ -16,13 +21,13 @@ static bool mark_dont_care_refs(pass_opt_t* opt, ast_t* ast)
     ast_setid(ast, TK_DONTCAREREF);
   }
 
-  DASTXR(true, ast);
+  DPLX("r=%d", true);
   return true;
 }
 
 ast_result_t pass_mark_dont_care_refs(ast_t** astp, pass_opt_t* options)
 {
-  UNUSED(options);
+  MAYBE_UNUSED(options);
   DPLE();
   ast_t* ast = *astp;
 

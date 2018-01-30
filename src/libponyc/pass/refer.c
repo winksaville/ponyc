@@ -221,7 +221,16 @@ bool refer_reference(pass_opt_t* opt, ast_t** astp)
   // Everything we reference must be in scope, so we can use ast_get for lookup.
   sym_status_t status;
   ast_t* def = ast_get(ast, ast_name(ast_child(ast)), &status);
-  pony_assert(def != NULL);
+  if(def != NULL)
+  {
+    // Save the found definition in the AST, so we
+    // don't need to look it up again.
+    ast_setdata(ast, (void*)def);
+  } else {
+    // Failing as nothing was found, but also try to suggest an alternate name.
+    pass_suggest_alt_name(opt, ast, name);
+    return false;
+  }
 
   switch(ast_id(def))
   {

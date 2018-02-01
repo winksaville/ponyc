@@ -4,6 +4,13 @@
 #include "../../libponyrt/mem/pool.h"
 #include "ponyassert.h"
 #include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "../dbg/dbg_util.h"
+
+// Uncomment to use stub
+#define USE_STUB true
 
 // Uncomment to enable
 //#define DBG_ENABLED true
@@ -12,6 +19,54 @@
 // Uncomment to enable
 //#define DBG_AST_ENABLED true
 #include "../dbg/dbg_ast.h"
+
+static void test0_dbg(void)
+{
+  dc_init(DC, stdout);
+
+  pony_assert(DC != NULL);
+
+  //D(DBG_FILE, "_DC_BIT_IDX(dummy, 0)=%d\n", _DC_BI(dummy, 0));
+  //D(DBG_FILE, "_DC_BIT_IDX(dummy, 1)=%d\n", _DC_BI(dummy, 1));
+  uint32_t bit_idx_0 = _DC_BIT_IDX(dummy, 0);
+  uint32_t bit_idx_1 = _DC_BIT_IDX(dummy, 1);
+  pony_assert(bit_idx_0 == 0x20);
+  pony_assert(bit_idx_1 == 0x21);
+
+  // Save original value
+  uint32_t dummy_0 = dc_gb(DC, dummy, 0);
+  uint32_t dummy_1 = dc_gb(DC, dummy, 1);
+  //D(DBG_FILE, "dummy_0=%0x\n", dummy_0);
+  //D(DBG_FILE, "dummy_1=%0x\n", dummy_1);
+  pony_assert(dc_gb(DC, dummy, 0) == 0b00);
+  pony_assert(dc_gb(DC, dummy, 1) == 0b00);
+
+  // Change both bits to 1 and verify the proper bits got changed
+  dc_sb(DC, dummy, 0, 1);
+  dc_sb(DC, dummy, 1, 1);
+  D(DBG_FILE, "dc_gb(DC, dummy, 0)=%0x\n", dc_gb(DC, dummy, 0));
+  D(DBG_FILE, "dc_gb(DC, dummy, 1)=%0x\n", dc_gb(DC, dummy, 1));
+  pony_assert(dc_gb(DC, dummy, 0) == 0b01);
+  pony_assert(dc_gb(DC, dummy, 1) == 0b10);
+  for(uint32_t i=0; i < sizeof(DC->bits)/sizeof(DC->bits[0]); i++)
+  {
+    if(i == 1)
+      pony_assert(DC->bits[i] == 0b11);
+    else
+      pony_assert(DC->bits[i] == 0);
+  }
+
+  // Change 0 to 0 and we should only get one message
+  dc_sb(DC, dummy, 1, 0);
+  DX(DC, dummy, 0, "dummy 0: Hello, %s\n", "World");
+  DX(DC, dummy, 1, "dummy 1: Hello, %s\n", "World");
+
+  // Restore original value
+  dc_sb(DC, dummy, 0, dummy_0);
+  dc_sb(DC, dummy, 1, dummy_1);
+  pony_assert(dc_gb(DC, dummy, 0) == dummy_0);
+  pony_assert(dc_gb(DC, dummy, 1) == dummy_1);
+}
 
 static void test1_dbg(void)
 {
@@ -83,6 +138,9 @@ static void test10_dbg(ast_t* ast)
   DPLX();
 }
 
+// Change to false for stub
+#if !USE_STUB
+
 ast_result_t pass_pre_dummy(ast_t** astp, pass_opt_t* options)
 {
   MAYBE_UNUSED(options);
@@ -110,6 +168,7 @@ ast_result_t pass_dummy(ast_t** astp, pass_opt_t* options)
   if (!once)
   {
     once = true;
+    test0_dbg();
     test1_dbg();
     test2_dbg();
     test3_dbg();
@@ -135,3 +194,37 @@ ast_result_t pass_dummy(ast_t** astp, pass_opt_t* options)
   DPLX("r=%d", result);
   return result;
 }
+
+#else
+
+ast_result_t pass_pre_dummy(ast_t** astp, pass_opt_t* options)
+{
+  MAYBE_UNUSED(options);
+  MAYBE_UNUSED(astp);
+  return AST_OK;
+}
+
+ast_result_t pass_dummy(ast_t** astp, pass_opt_t* options) {
+  MAYBE_UNUSED(astp);
+  MAYBE_UNUSED(options);
+  ast_t* ast = *astp;
+  static bool once = false;
+  if (!once)
+  {
+    once = true;
+    test0_dbg();
+    test1_dbg();
+    test2_dbg();
+    test3_dbg();
+    test4_dbg();
+    test5_dbg();
+    test6_dbg();
+    test7_dbg();
+    test8_dbg(ast);
+    test9_dbg(ast);
+    test10_dbg(ast);
+  }
+  return AST_OK;
+}
+
+#endif

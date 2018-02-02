@@ -16,56 +16,60 @@
 //#define DBG_ENABLED true
 #include "../dbg/dbg.h"
 
-// Uncomment to enable
+// Uncomment to enable AST debug
 //#define DBG_AST_ENABLED true
 #include "../dbg/dbg_ast.h"
 
 static void test0_dbg(void)
 {
-  dc_init(DC, stdout);
+  dbg_ctx_t* dctx = dc_init(stdout, 1024);
 
-  pony_assert(DC != NULL);
+  pony_assert(dctx != NULL);
 
   //D(DBG_FILE, "_DC_BIT_IDX(dummy, 0)=%d\n", _DC_BI(dummy, 0));
   //D(DBG_FILE, "_DC_BIT_IDX(dummy, 1)=%d\n", _DC_BI(dummy, 1));
-  uint32_t bit_idx_0 = _DC_BIT_IDX(dummy, 0);
-  uint32_t bit_idx_1 = _DC_BIT_IDX(dummy, 1);
+  uint32_t bit_idx_0 = dc_bni(dummy, 0);
+  uint32_t bit_idx_1 = dc_bni(dummy, 1);
   pony_assert(bit_idx_0 == 0x20);
   pony_assert(bit_idx_1 == 0x21);
 
   // Save original value
-  uint32_t dummy_0 = dc_gb(DC, dummy, 0);
-  uint32_t dummy_1 = dc_gb(DC, dummy, 1);
+  bool dummy_0 = dc_gb(dctx, dc_bni(dummy, 0));
+  bool dummy_1 = dc_gb(dctx, dc_bni(dummy, 1));
   //D(DBG_FILE, "dummy_0=%0x\n", dummy_0);
   //D(DBG_FILE, "dummy_1=%0x\n", dummy_1);
-  pony_assert(dc_gb(DC, dummy, 0) == 0b00);
-  pony_assert(dc_gb(DC, dummy, 1) == 0b00);
+  pony_assert(dc_gb(dctx, dc_bni(dummy, 0)) == false);
+  pony_assert(dc_gb(dctx, dc_bni(dummy, 1)) == false);
 
   // Change both bits to 1 and verify the proper bits got changed
-  dc_sb(DC, dummy, 0, 1);
-  dc_sb(DC, dummy, 1, 1);
-  D(DBG_FILE, "dc_gb(DC, dummy, 0)=%0x\n", dc_gb(DC, dummy, 0));
-  D(DBG_FILE, "dc_gb(DC, dummy, 1)=%0x\n", dc_gb(DC, dummy, 1));
-  pony_assert(dc_gb(DC, dummy, 0) == 0b01);
-  pony_assert(dc_gb(DC, dummy, 1) == 0b10);
-  for(uint32_t i=0; i < sizeof(DC->bits)/sizeof(DC->bits[0]); i++)
+  dc_sb(dctx, dc_bni(dummy, 0), 1);
+  dc_sb(dctx, dc_bni(dummy, 1), 1);
+  //D(DBG_FILE, "dc_gb(dctx, dc_bni(dummy, 0))=%0x\n",
+  //    dc_gb(dctx, dc_bni(dummy, 0)));
+  //D(DBG_FILE, "dc_gb(dctx, dc_bni(dummy, 1))=%0x\n",
+  //    dc_gb(dctx, dc_bni(dummy, 1)));
+  pony_assert(dc_gb(dctx, dc_bni(dummy, 0)) == true);
+  pony_assert(dc_gb(dctx, dc_bni(dummy, 1)) == true);
+  for(uint32_t i=0; i < sizeof(dctx->bits)/sizeof(dctx->bits[0]); i++)
   {
     if(i == 1)
-      pony_assert(DC->bits[i] == 0b11);
+      pony_assert(dctx->bits[i] == 0b11);
     else
-      pony_assert(DC->bits[i] == 0);
+      pony_assert(dctx->bits[i] == 0);
   }
 
   // Change 0 to 0 and we should only get one message
-  dc_sb(DC, dummy, 1, 0);
-  DX(DC, dummy, 0, "dummy 0: Hello, %s\n", "World");
-  DX(DC, dummy, 1, "dummy 1: Hello, %s\n", "World");
+  dc_sb(dctx, dc_bni(dummy, 1), 0);
+  DX(dctx, dc_gb(dctx, dc_bni(dummy, 0)), "dummy 0: Hello, %s\n", "World");
+  DX(dctx, dc_gb(dctx, dc_bni(dummy, 1)), "dummy 1: Hello, %s\n", "World");
 
   // Restore original value
-  dc_sb(DC, dummy, 0, dummy_0);
-  dc_sb(DC, dummy, 1, dummy_1);
-  pony_assert(dc_gb(DC, dummy, 0) == dummy_0);
-  pony_assert(dc_gb(DC, dummy, 1) == dummy_1);
+  dc_sb(dctx, dc_bni(dummy, 0), dummy_0);
+  dc_sb(dctx, dc_bni(dummy, 1), dummy_1);
+  pony_assert(dc_gb(dctx, dc_bni(dummy, 0)) == dummy_0);
+  pony_assert(dc_gb(dctx, dc_bni(dummy, 1)) == dummy_1);
+
+  dc_destroy(dctx);
 }
 
 static void test1_dbg(void)

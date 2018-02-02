@@ -16,13 +16,13 @@ PONY_EXTERN_C_BEGIN
 #define DBG_ENABLED false
 #endif
 
-#define DX(ctx, base_name, bit_offset, format, ...) \
+#define DX(ctx, bit_idx, format, ...) \
   do \
   { \
     { \
       if(DBG_ENABLED) \
       { \
-        if(dc_gb(ctx, base_name, bit_offset)) \
+        if(dc_gb(ctx, bit_idx)) \
           fprintf(ctx->file, format, ## __VA_ARGS__); \
       } \
     } \

@@ -46,7 +46,7 @@ TEST_F(DbgBitsTest, TestDcBitMask)
 
 TEST_F(DbgBitsTest, TestDcInitDestroy)
 {
-  dbg_ctx_t* dc = dc_init(NULL, 2);
+  dbg_ctx_t* dc = dc_create(NULL, 2);
 
   // Verify data structure
   ASSERT_EQ(dc->bits[0], 0);
@@ -54,7 +54,7 @@ TEST_F(DbgBitsTest, TestDcInitDestroy)
   
   dc_destroy(dc);
 
-  dc = dc_init(stdout, 2);
+  dc = dc_create(stdout, 2);
 
   // Verify data structure
   ASSERT_TRUE(dc->file != NULL);
@@ -67,7 +67,7 @@ TEST_F(DbgBitsTest, TestDcInitDestroy)
 TEST_F(DbgBitsTest, TestWalkingOneBit)
 {
   const uint32_t num_bits = 64; // Assume power of 2
-  dbg_ctx_t* dc = dc_init(NULL, num_bits);
+  dbg_ctx_t* dc = dc_create(NULL, num_bits);
 
   // Verify all bits are zero
   for(uint32_t bi = 0; bi < num_bits; bi++)
@@ -119,7 +119,7 @@ TEST_F(DbgBitsTest, TestWalkingOneBit)
 TEST_F(DbgBitsTest, TestWalkingTwoBits)
 {
   const uint32_t num_bits = 64; // Assume power of 2
-  dbg_ctx_t* dc = dc_init(NULL, num_bits);
+  dbg_ctx_t* dc = dc_create(NULL, num_bits);
 
   // Verify all bits are zero
   for(uint32_t bi = 0; bi < num_bits; bi++)
@@ -169,7 +169,7 @@ TEST_F(DbgBitsTest, TestWalkingTwoBits)
 
 TEST_F(DbgBitsTest, TestDcReadWriteBitsOfDummy)
 {
-  dbg_ctx_t* dc = dc_init(NULL, dc_bni(dummy, 2));
+  dbg_ctx_t* dc = dc_create(NULL, dc_bni(dummy, 2));
 
   // Get bit index of dummy[0] and dummy[1] they should be adjacent
   uint32_t bi0 = dc_bni(dummy, 0);
@@ -193,4 +193,6 @@ TEST_F(DbgBitsTest, TestDcReadWriteBitsOfDummy)
   dc_sb(dc, bi1, o1);
   ASSERT_EQ(dc_gb(dc, bi0), o0);
   ASSERT_EQ(dc_gb(dc, bi1), o1);
+
+  dc_destroy(dc);
 }

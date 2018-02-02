@@ -76,9 +76,10 @@ static inline bool dc_gb(dbg_ctx_t* ctx, uint32_t bit_idx)
 }
 
 /**
- * Initialize
+ * Create a dbg context and initialize. In particular the
+ * bits array will be zeroed.
  */
-dbg_ctx_t* dc_init(FILE* file, uint32_t number_of_bits);
+dbg_ctx_t* dc_create(FILE* file, uint32_t number_of_bits);
 
 /**
  * Free memory, the FILE is NOT closed.

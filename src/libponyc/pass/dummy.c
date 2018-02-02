@@ -22,7 +22,7 @@
 
 static void test0_dbg(void)
 {
-  dbg_ctx_t* dctx = dc_init(stdout, 1024);
+  dbg_ctx_t* dctx = dc_create(stdout, 1024);
 
   pony_assert(dctx != NULL);
 

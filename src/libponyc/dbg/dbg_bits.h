@@ -86,6 +86,103 @@ dbg_ctx_t* dc_create(FILE* file, uint32_t number_of_bits);
  */
 void dc_destroy(dbg_ctx_t* dbg_ctx);
 
+/**
+ * Never a nop via conditional compilation and ignores ctx->bits
+ */
+#define DCUP(ctx, format, ...) \
+  do { fprintf(ctx->file, format, ## __VA_ARGS__); } while(0)
+
+/**
+ * Flush ctx file
+ */
+#define DCFLUSH(ctx) do { fflush(ctx->file); } while(0)
+
+/**
+ * Printf if bit_idx is set
+ */
+#define DCPF(ctx, bit_idx, format, ...) \
+  do \
+  { \
+     if(DBG_ENABLED) \
+     { \
+       if(dc_gb(ctx, bit_idx)) \
+         fprintf(ctx->file, format, ## __VA_ARGS__); \
+     } \
+  } \
+  while(0)
+
+/**
+ * Printf with leading "<funcName>:  " if bit_idx is set
+ */
+#define DCPFN(ctx, bit_idx, format, ...) \
+  do \
+  { \
+     if(DBG_ENABLED) \
+     { \
+       if(dc_gb(ctx, bit_idx)) \
+         fprintf(ctx->file, "%s:  " format, __FUNCTION__, ## __VA_ARGS__); \
+     } \
+  } \
+  while(0)
+
+/**
+ * "Enter routine" prints "<funcName>:+\n" if bit_idx is set
+ */
+#define DCE(ctx, bit_idx) \
+  do \
+  { \
+     if(DBG_ENABLED) \
+     { \
+       if(dc_gb(ctx, bit_idx)) \
+         fprintf(ctx->file, "%s:+\n", __FUNCTION__); \
+     } \
+  } \
+  while(0)
+
+/**
+ * Enter routine print leading functionName:+ and new line
+ * if bit_idx is set
+ */
+#define DCPFE(ctx, bit_idx, format, ...) \
+  do \
+  { \
+     if(DBG_ENABLED) \
+     { \
+       if(dc_gb(ctx, bit_idx)) \
+         fprintf(ctx->file, "%s:+ " format, __FUNCTION__, ## __VA_ARGS__); \
+     } \
+  } \
+  while(0)
+
+/**
+ * "Exit routine" prints "<funcName>:-\n" if bit_idx is set
+ */
+#define DCX(ctx, bit_idx) \
+  do \
+  { \
+     if(DBG_ENABLED) \
+     { \
+       if(dc_gb(ctx, bit_idx)) \
+         fprintf(ctx->file, "%s:-\n", __FUNCTION__); \
+     } \
+  } \
+  while(0)
+
+/**
+ * Enter routine print leading functionName:+ and new line
+ * if bit_idx is set
+ */
+#define DCPFX(ctx, bit_idx, format, ...) \
+  do \
+  { \
+     if(DBG_ENABLED) \
+     { \
+       if(dc_gb(ctx, bit_idx)) \
+         fprintf(ctx->file, "%s:- " format, __FUNCTION__, ## __VA_ARGS__); \
+     } \
+  } \
+  while(0)
+
 PONY_EXTERN_C_END
 
 #endif

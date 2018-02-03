@@ -46,27 +46,23 @@ TEST_F(DbgBitsTest, TestDcBitMask)
 
 TEST_F(DbgBitsTest, TestDcInitDestroy)
 {
-  dbg_ctx_t* dc = dc_create(NULL, 2);
-
   // Verify data structure
+  dbg_ctx_t* dc = dc_create(NULL, 1);
+  ASSERT_TRUE(dc->bits != NULL);
   ASSERT_EQ(dc->bits[0], 0);
   ASSERT_TRUE(dc->file == NULL);
-  
   dc_destroy(dc);
 
-  dc = dc_create(stdout, 2);
-
-  // Verify data structure
-  ASSERT_TRUE(dc->file != NULL);
+  dc = dc_create(stdout, 1);
+  ASSERT_TRUE(dc->bits != NULL);
   ASSERT_EQ(dc->bits[0], 0);
   ASSERT_EQ(dc->file, stdout);
-  
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestWalkingOneBit)
+TEST_F(DbgBitsTest, TestBitsInitToZero)
 {
-  const uint32_t num_bits = 64; // Assume power of 2
+  const uint32_t num_bits = 65;
   dbg_ctx_t* dc = dc_create(NULL, num_bits);
 
   // Verify all bits are zero
@@ -80,6 +76,14 @@ TEST_F(DbgBitsTest, TestWalkingOneBit)
   {
     ASSERT_EQ(dc->bits[i], 0);
   }
+
+  dc_destroy(dc);
+}
+
+TEST_F(DbgBitsTest, TestWalkingOneBit)
+{
+  const uint32_t num_bits = 29;
+  dbg_ctx_t* dc = dc_create(NULL, num_bits);
 
   // Walking one bit
   for(uint32_t bi = 0; bi < num_bits; bi++)
@@ -118,20 +122,11 @@ TEST_F(DbgBitsTest, TestWalkingOneBit)
 
 TEST_F(DbgBitsTest, TestWalkingTwoBits)
 {
-  const uint32_t num_bits = 64; // Assume power of 2
+  const uint32_t num_bits = 147;
   dbg_ctx_t* dc = dc_create(NULL, num_bits);
 
-  // Verify all bits are zero
-  for(uint32_t bi = 0; bi < num_bits; bi++)
-  {
-    ASSERT_FALSE(dc_gb(dc, bi));
-  }
-
-  // Verify bits array is zero
-  for(uint32_t i = 0; i < (num_bits + 31) / 32; i++)
-  {
-    ASSERT_EQ(dc->bits[i], 0);
-  }
+  // Number bits must be >= 2
+  ASSERT_TRUE(num_bits >= 2);
 
   // Walking two bits
   dc_sb(dc, 0, 1);
@@ -195,4 +190,252 @@ TEST_F(DbgBitsTest, TestDcReadWriteBitsOfDummy)
   ASSERT_EQ(dc_gb(dc, bi1), o1);
 
   dc_destroy(dc);
+}
+
+TEST_F(DbgBitsTest, TestFmemopen)
+{
+  char buffer[8192];
+
+  // Create memory file use "w+" so the first byte is a 0
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+  EXPECT_EQ(strlen(buffer), 0);
+
+  // Write some data and flush to see the contents
+  fprintf(memfile, "hi");
+  fflush(memfile);
+  EXPECT_EQ(strlen(buffer), 2);
+  EXPECT_EQ(strcmp(buffer, "hi"), 0);
+
+  // If we don't flush then the data may or may not
+  // be in the buffer so we can't expect anything.
+  fprintf(memfile, "1");
+  fprintf(memfile, "2");
+  //EXPECT_NE(strcmp(buffer, "hi12"), 0);
+
+  // Closing will flush and close now we can
+  // expect the data to be in the buffer
+  int r = fclose(memfile);
+  EXPECT_EQ(r, 0);
+  EXPECT_EQ(strlen(buffer), 4);
+  EXPECT_EQ(strcmp(buffer, "hi12"), 0);
+}
+
+TEST_F(DbgBitsTest, TestDcup)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  // Create dc all bits are off
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+
+  // Validate DCUP still prints and after fclose buffer is valid
+  DCUP(dc, "123");
+  fclose(memfile);
+  EXPECT_EQ(strcmp("123", buffer), 0);
+
+  dc_destroy(dc);
+}
+
+TEST_F(DbgBitsTest, TestDcflush)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+
+  // Validate DCFLUSH can be used instead of fclose
+  DCUP(dc, "123");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("123", buffer), 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestFseek)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+
+  // Write something
+  DCUP(dc, "123");
+  EXPECT_EQ(ftell(memfile), 3);
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("123", buffer), 0);
+
+  // fseek back to beginning, write and verify.
+  // NOTE: The behavior of not writing a zero when flushing
+  // means using fseek to reuse a buffer is not advisible
+  // in general.
+  fseek(memfile, 0, SEEK_SET);
+  EXPECT_EQ(ftell(memfile), 0);
+  DCUP(dc, "45");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("453", buffer), 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestTruthfulnessOfDcgb)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  // Use true for setting and see what's returned
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+  dc_sb(dc, 0, true);
+  EXPECT_EQ(dc_gb(dc, 0), true);
+  EXPECT_EQ(dc_gb(dc, 0), 1);
+  EXPECT_TRUE(dc_gb(dc, 0));
+  EXPECT_TRUE(dc_gb(dc, 0) != 0);
+
+  // Use non-zero for setting and previous tests should still succeed
+  dc_sb(dc, 0, ~0);
+  EXPECT_EQ(dc_gb(dc, 0), true);
+  EXPECT_EQ(dc_gb(dc, 0), 1);
+  EXPECT_TRUE(dc_gb(dc, 0));
+  EXPECT_TRUE(dc_gb(dc, 0) != 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestFalsityOfDcgb)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+  dc_sb(dc, 0, 0);
+  EXPECT_EQ(dc_gb(dc, 0), false);
+  EXPECT_EQ(dc_gb(dc, 0), 0);
+  EXPECT_FALSE(dc_gb(dc, 0));
+  EXPECT_TRUE(dc_gb(dc, 0) == 0);
+
+  dc_sb(dc, 0, false);
+  EXPECT_EQ(dc_gb(dc, 0), false);
+  EXPECT_EQ(dc_gb(dc, 0), 0);
+  EXPECT_FALSE(dc_gb(dc, 0));
+  EXPECT_TRUE(dc_gb(dc, 0) == 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestDcpf)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+
+  // Validate nothing is printed after creating
+  // because bit is 0
+  DCPF(dc, 0, "123");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("", buffer), 0);
+
+  // Now set bit and verify something is printed
+  dc_sb(dc, 0, true);
+  DCPF(dc, 0, "456");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("456", buffer), 0);
+
+  // Now clear bit and verify nothing is added
+  dc_sb(dc, 0, false);
+  DCPF(dc, 0, "789");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("456", buffer), 0);
+
+  // Now set bit and verify it is now added
+  dc_sb(dc, 0, true);
+  DCPF(dc, 0, "789\n");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("456789\n", buffer), 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestDcpfn)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+
+  // Now set bit print with function name and verify
+  dc_sb(dc, 0, true);
+  DCPFN(dc, 0, "456");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:  456", buffer), 0);
+
+  // Now append somethign using DCPF (no function name) and verify
+  DCPF(dc, 0, "789\n");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:  456789\n", buffer), 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestDceDcx)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+  dc_sb(dc, 0, true);
+
+  // Validate nothing is printed after creating
+  // because bit is 0
+  DCE(dc, 0);
+  DCX(dc, 0);
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:+\nTestBody:-\n", buffer), 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgBitsTest, TestDcpfeDcpfx)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dc_create(memfile, 1);
+  dc_sb(dc, 0, true);
+
+  // Validate nothing is printed after creating
+  // because bit is 0
+  DCPFE(dc, 0, "Hello, %s\n", "World");
+  DCPFX(dc, 0, "Good bye\n");
+  DCFLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:+ Hello, World\nTestBody:- Good bye\n",
+        buffer), 0);
+
+  dc_destroy(dc);
+  fclose(memfile);
 }

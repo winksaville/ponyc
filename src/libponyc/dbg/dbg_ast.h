@@ -1,75 +1,84 @@
 #ifndef DBG_AST_H
 #define DBG_AST_H
 
-#include <platform.h>
+#include "../dbg/dbg.h"
+#include "../dbg/dbg_util.h"
 #include "../ast/ast.h"
 #include "../pass/pass.h"
-#include "../dbg/dbg_util.h"
+
+#include <platform.h>
 
 #if !defined(DBG_AST_ENABLED)
 #define DBG_AST_ENABLED false
-#endif
-
-#if !defined(DBG_FILE)
-#define DBG_FILE stdout
 #endif
 
 #if !defined(AST_PRINT_WIDTH)
 #define AST_PRINT_WIDTH 200
 #endif
 
-#define DAST(ast) \
+#define DAST(ctx, bit_idx, ast) \
   do \
   { \
     if(DBG_AST_ENABLED) \
     { \
-      fprintf(DBG_FILE, "%s:  ", __FUNCTION__); \
-      ast_print(ast, AST_PRINT_WIDTH); \
+      if(dc_gb(ctx, bit_idx)) \
+      { \
+        fprintf(ctx->file, "%s:  %s ", __FUNCTION__, dbg_str(ast)); \
+        ast_fprint(ctx->file, ast, AST_PRINT_WIDTH); \
+      } \
     } \
   } \
   while(0)
 
-#define DASTF(ast, format, ...) \
+#define DASTF(ctx, bit_idx, ast, format, ...) \
   do \
   { \
     if(DBG_AST_ENABLED) \
     { \
-      fprintf(DBG_FILE, "%s:  %s" format, __FUNCTION__, dbg_str(ast), \
-                ## __VA_ARGS__); \
-      ast_print(ast, AST_PRINT_WIDTH); \
+      if(dc_gb(ctx, bit_idx)) \
+      { \
+        fprintf(ctx->file, "%s:  " format, __FUNCTION__, ## __VA_ARGS__); \
+        ast_fprint(ctx->file, ast, AST_PRINT_WIDTH); \
+      } \
     } \
   } \
   while(0)
 
 // Debug ast_print_and_parents
-#define DASTP(ast, number) \
+#define DASTP(ctx, bit_idx, ast, number) \
   do \
   { \
     if(DBG_AST_ENABLED) \
     { \
-      for(int i=0; (ast != NULL) && (i < number); i++) \
+      if(dc_gb(ctx, bit_idx)) \
       { \
-        fprintf(DBG_FILE, "%s: %s[%d]: ", __FUNCTION__, dbg_str(ast), -i); \
-        ast_fprint(DBG_FILE, ast, AST_PRINT_WIDTH); \
-        ast = ast_parent(ast); \
+        for(int i=0; (ast != NULL) && (i < number); i++) \
+        { \
+          fprintf(ctx->file, "%s: %s[%d]: ", __FUNCTION__, dbg_str(ast), -i); \
+          ast_fprint(ctx->file, ast, AST_PRINT_WIDTH); \
+          ast = ast_parent(ast); \
+        } \
       } \
     } \
   } \
   while(0)
 
 // Debug ast_siblings
-#define DASTS(ast) \
+#define DASTS(ctx, bit_idx, ast) \
   do \
   { \
     if(DBG_AST_ENABLED) \
     { \
-      ast_t* parent = ast_parent(ast); \
-      ast_t* child = ast_child(parent); \
-      for(int i=0; (child != NULL); i++) \
+      if(dc_gb(ctx, bit_idx)) \
       { \
-        fprintf(DBG_FILE, "%s %s[%d]: ", __FUNCTION__, dbg_str(ast), i); \
-        ast_fprint(DBG_FILE, child, AST_PRINT_WIDTH); \
-        child = ast_sibling(child); \
+        ast_t* parent = ast_parent(ast); \
+        ast_t* child = ast_child(parent); \
+        for(int i=0; (child != NULL); i++) \
+        { \
+          fprintf(ctx->file, "%s %s[%d]: ", __FUNCTION__, dbg_str(ast), i); \
+          ast_fprint(ctx->file, child, AST_PRINT_WIDTH); \
+          child = ast_sibling(child); \
+        } \
       } \
     } \
   } \

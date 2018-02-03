@@ -1,0 +1,222 @@
+#include <gtest/gtest.h>
+#include <platform.h>
+
+#include <ast/astbuild.h>
+#include <ast/ast.h>
+#include <pass/scope.h>
+#include <ast/stringtab.h>
+#include <pass/pass.h>
+#include <pkg/package.h>
+#include <pkg/use.h>
+
+#include "util.h"
+
+#define DBG_ENABLED true
+#include "../../src/libponyc/dbg/dbg.h"
+
+#define DBG_AST_ENABLED true
+#define AST_PRINT_WIDTH 40
+#include "../../src/libponyc/dbg/dbg_ast.h"
+
+
+#define TEST_COMPILE(src) DO(test_compile(src, "scope"))
+#define TEST_ERROR(src) DO(test_error(src, "scope"))
+
+
+class DbgAstTest : public PassTest
+{
+  protected:
+    virtual void SetUp() {
+      memfile = fmemopen(buffer, sizeof(buffer), "w+");
+      ASSERT_TRUE(memfile != NULL);
+
+      // Create dc set bit 0
+      dc = dc_create(memfile, 1);
+      dc_sb(dc, 0, 1);
+      // Create a "program" but I'm not sure what second parameter
+      // to BUILD should be, for now just create an TK_ID?
+      ast_t* node = ast_blank(TK_ID);
+      ast_set_name(node, "test");
+      BUILD(prog, node,
+        NODE(TK_PACKAGE, AST_SCOPE
+          NODE(TK_MODULE, AST_SCOPE
+            NODE(TK_ACTOR, AST_SCOPE
+              ID("main")
+              NONE
+              NODE(TK_TAG)
+              NONE
+              NODE(TK_MEMBERS,
+                NODE(TK_NEW, AST_SCOPE
+                  NODE(TK_TAG)
+                  ID("create")  // name
+                  NONE          // typeparams
+                  NONE          // params
+                  NONE          // return type
+                  NONE          // error
+                  NODE(TK_SEQ, NODE(TK_TRUE))
+                  NONE
+                  NONE
+                )
+              )
+            )
+          )
+        )
+      );
+      program = prog;
+    }
+
+    virtual void TearDown() {
+      dc_destroy(dc);
+      fclose(memfile);
+    }
+
+    char buffer[8192];
+    FILE* memfile;
+    dbg_ctx_t* dc;
+    ast_t* program;
+};
+
+TEST_F(DbgAstTest, TestDast)
+{
+  const char* expected =
+      "TestBody:  program (package:scope\n"
+      "  (module:scope\n"
+      "    (actor:scope\n"
+      "      (id main)\n"
+      "      x\n"
+      "      tag\n"
+      "      x\n"
+      "      (members\n"
+      "        (new:scope\n"
+      "          tag\n"
+      "          (id create)\n"
+      "          x\n"
+      "          x\n"
+      "          x\n"
+      "          x\n"
+      "          (seq true)\n"
+      "          x\n"
+      "          x\n"
+      "        )\n"
+      "      )\n"
+      "    )\n"
+      "  )\n"
+      ")\n";
+
+  //ast_print(program, AST_PRINT_WIDTH);
+  DAST(dc, 0, program);
+  DCFLUSH(dc);
+
+  // Test if successful
+  //printf("ast_text len=%zu buffer len=%zu\n",
+  //  strlen(ast_text), strlen(buffer));
+  if(strcmp(expected, buffer) != 0)
+  {
+    ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
+      "expected:" << std::endl <<
+      "\"" << expected << "\"" << std::endl <<
+      "buffer:" << std::endl <<
+      "\"" << buffer << "\"";
+  }
+}
+
+TEST_F(DbgAstTest, TestDastf)
+{
+  const char* expected =
+    "TestBody:  ast_child(actor)=(id main)\n";
+
+  ast_t* module = ast_child(program);
+  ast_t* actor = ast_child(module);
+  ast_t* id = ast_child(actor);
+  DASTF(dc, 0, id, "ast_child(actor)=");
+  DCFLUSH(dc);
+  //printf("expected len=%zu buffer len=%zu\n",
+  //  strlen(expected), strlen(buffer));
+  if(strcmp(expected, buffer) != 0)
+  {
+    ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
+      "expected:" << std::endl <<
+      "\"" << expected << "\"" << std::endl <<
+      "buffer:" << std::endl <<
+      "\"" << buffer << "\"";
+  }
+}
+
+TEST_F(DbgAstTest, TestDastp)
+{
+  const char* expected =
+    "TestBody: id[0]: (id main)\n"
+    "TestBody: id[-1]: (actor:scope\n"
+    "  (id main)\n"
+    "  x\n"
+    "  tag\n"
+    "  x\n"
+    "  (members\n"
+    "    (new:scope\n"
+    "      tag\n"
+    "      (id create)\n"
+    "      x\n"
+    "      x\n"
+    "      x\n"
+    "      x\n"
+    "      (seq true)\n"
+    "      x\n"
+    "      x\n"
+    "    )\n"
+    "  )\n"
+    ")\n";
+
+  ast_t* module = ast_child(program);
+  ast_t* actor = ast_child(module);
+  ast_t* id = ast_child(actor);
+  DASTP(dc, 0, id, 2);
+  DCFLUSH(dc);
+  //printf("expected len=%zu buffer len=%zu\n",
+  //  strlen(expected), strlen(buffer));
+  if(strcmp(expected, buffer) != 0)
+  {
+    ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
+      "expected:" << std::endl <<
+      "\"" << expected << "\"" << std::endl <<
+      "buffer:" << std::endl <<
+      "\"" << buffer << "\"";
+  }
+}
+
+TEST_F(DbgAstTest, TestDasts)
+{
+  const char* expected =
+    "TestBody id[0]: (id main)\n"
+    "TestBody id[1]: x\n"
+    "TestBody id[2]: tag\n"
+    "TestBody id[3]: x\n"
+    "TestBody id[4]: (members\n"
+    "  (new:scope\n"
+    "    tag\n"
+    "    (id create)\n"
+    "    x\n"
+    "    x\n"
+    "    x\n"
+    "    x\n"
+    "    (seq true)\n"
+    "    x\n"
+    "    x\n"
+    "  )\n"
+    ")\n";
+
+  ast_t* module = ast_child(program);
+  ast_t* actor = ast_child(module);
+  ast_t* id = ast_child(actor);
+  DASTS(dc, 0, id);
+  DCFLUSH(dc);
+  //printf("expected len=%zu buffer len=%zu\n",
+  //  strlen(expected), strlen(buffer));
+  if(strcmp(expected, buffer) != 0)
+  {
+    ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
+      "expected:" << std::endl <<
+      "\"" << expected << "\"" << std::endl <<
+      "buffer:" << std::endl <<
+      "\"" << buffer << "\"";
+  }
+}

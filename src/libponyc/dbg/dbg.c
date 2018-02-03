@@ -1,4 +1,4 @@
-#include "dbg_bits.h"
+#include "dbg.h"
 
 #include "ponyassert.h"
 #include <string.h>

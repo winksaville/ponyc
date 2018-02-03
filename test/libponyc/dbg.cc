@@ -4,10 +4,10 @@
 #define DBG_ENABLED true
 #include "../../src/libponyc/dbg/dbg.h"
 
-class DbgBitsTest : public testing::Test
+class DbgTest : public testing::Test
 {};
 
-TEST_F(DbgBitsTest, TestDcBi)
+TEST_F(DbgTest, TestDcBi)
 {
   ASSERT_EQ(dc_bi(0,0), 0);
   ASSERT_EQ(dc_bi(0,1), 1);
@@ -15,7 +15,7 @@ TEST_F(DbgBitsTest, TestDcBi)
   ASSERT_EQ(dc_bi(1,1), 2);
 }
 
-TEST_F(DbgBitsTest, TestDcBni)
+TEST_F(DbgTest, TestDcBni)
 {
   ASSERT_EQ(dc_bni(first,0), 0);
   ASSERT_EQ(dc_bni(first,1), 1);
@@ -23,7 +23,7 @@ TEST_F(DbgBitsTest, TestDcBni)
   ASSERT_EQ(dc_bni(dummy,1), 33);
 }
 
-TEST_F(DbgBitsTest, TestDcBitsArrayIdx)
+TEST_F(DbgTest, TestDcBitsArrayIdx)
 {
   ASSERT_EQ(_DC_BITS_ARRAY_IDX(0), 0);
   ASSERT_EQ(_DC_BITS_ARRAY_IDX(31), 0);
@@ -33,7 +33,7 @@ TEST_F(DbgBitsTest, TestDcBitsArrayIdx)
   ASSERT_EQ(_DC_BITS_ARRAY_IDX(95), 2);
 }
 
-TEST_F(DbgBitsTest, TestDcBitMask)
+TEST_F(DbgTest, TestDcBitMask)
 {
   ASSERT_EQ(_DC_BIT_MASK(0),  0x00000001);
   ASSERT_EQ(_DC_BIT_MASK(1),  0x00000002);
@@ -44,7 +44,7 @@ TEST_F(DbgBitsTest, TestDcBitMask)
   ASSERT_EQ(_DC_BIT_MASK(95), 0x80000000);
 }
 
-TEST_F(DbgBitsTest, TestDcInitDestroy)
+TEST_F(DbgTest, TestDcInitDestroy)
 {
   // Verify data structure
   dbg_ctx_t* dc = dc_create(NULL, 1);
@@ -60,7 +60,7 @@ TEST_F(DbgBitsTest, TestDcInitDestroy)
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestBitsInitToZero)
+TEST_F(DbgTest, TestBitsInitToZero)
 {
   const uint32_t num_bits = 65;
   dbg_ctx_t* dc = dc_create(NULL, num_bits);
@@ -80,7 +80,7 @@ TEST_F(DbgBitsTest, TestBitsInitToZero)
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestWalkingOneBit)
+TEST_F(DbgTest, TestWalkingOneBit)
 {
   const uint32_t num_bits = 29;
   dbg_ctx_t* dc = dc_create(NULL, num_bits);
@@ -120,7 +120,7 @@ TEST_F(DbgBitsTest, TestWalkingOneBit)
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestWalkingTwoBits)
+TEST_F(DbgTest, TestWalkingTwoBits)
 {
   const uint32_t num_bits = 147;
   dbg_ctx_t* dc = dc_create(NULL, num_bits);
@@ -162,7 +162,7 @@ TEST_F(DbgBitsTest, TestWalkingTwoBits)
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestDcReadWriteBitsOfDummy)
+TEST_F(DbgTest, TestDcReadWriteBitsOfDummy)
 {
   dbg_ctx_t* dc = dc_create(NULL, dc_bni(dummy, 2));
 
@@ -192,7 +192,7 @@ TEST_F(DbgBitsTest, TestDcReadWriteBitsOfDummy)
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestFmemopen)
+TEST_F(DbgTest, TestFmemopen)
 {
   char buffer[8192];
 
@@ -221,7 +221,7 @@ TEST_F(DbgBitsTest, TestFmemopen)
   EXPECT_EQ(strcmp(buffer, "hi12"), 0);
 }
 
-TEST_F(DbgBitsTest, TestDcup)
+TEST_F(DbgTest, TestDcup)
 {
   char buffer[8192];
 
@@ -239,7 +239,7 @@ TEST_F(DbgBitsTest, TestDcup)
   dc_destroy(dc);
 }
 
-TEST_F(DbgBitsTest, TestDcflush)
+TEST_F(DbgTest, TestDcflush)
 {
   char buffer[8192];
 
@@ -257,7 +257,7 @@ TEST_F(DbgBitsTest, TestDcflush)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestFseek)
+TEST_F(DbgTest, TestFseek)
 {
   char buffer[8192];
 
@@ -286,7 +286,7 @@ TEST_F(DbgBitsTest, TestFseek)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestTruthfulnessOfDcgb)
+TEST_F(DbgTest, TestTruthfulnessOfDcgb)
 {
   char buffer[8192];
 
@@ -312,7 +312,7 @@ TEST_F(DbgBitsTest, TestTruthfulnessOfDcgb)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestFalsityOfDcgb)
+TEST_F(DbgTest, TestFalsityOfDcgb)
 {
   char buffer[8192];
 
@@ -336,7 +336,7 @@ TEST_F(DbgBitsTest, TestFalsityOfDcgb)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestDcpf)
+TEST_F(DbgTest, TestDcpf)
 {
   char buffer[8192];
 
@@ -373,7 +373,7 @@ TEST_F(DbgBitsTest, TestDcpf)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestDcpfn)
+TEST_F(DbgTest, TestDcpfn)
 {
   char buffer[8192];
 
@@ -397,7 +397,7 @@ TEST_F(DbgBitsTest, TestDcpfn)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestDceDcx)
+TEST_F(DbgTest, TestDceDcx)
 {
   char buffer[8192];
 
@@ -418,7 +418,7 @@ TEST_F(DbgBitsTest, TestDceDcx)
   fclose(memfile);
 }
 
-TEST_F(DbgBitsTest, TestDcpfeDcpfx)
+TEST_F(DbgTest, TestDcpfeDcpfx)
 {
   char buffer[8192];
 

@@ -2,19 +2,16 @@
 #include <platform.h>
 #include <string.h>
 
-#define DBG_ENABLED true
-#include "../../src/libponyc/dbg/dbg.h"
-
-class DbgTest : public testing::Test
+class FmemOpenTest: public testing::Test
 {};
 
-TEST_F(DbgTest, TestFmemopen)
+TEST_F(FmemOpenTest, TestFmemopen)
 {
   char buffer[8192];
+
+  // Create memory file use "w+" so the first byte is a 0
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
-
-  // Using "w+" we will have a 0 in the buffer
   EXPECT_EQ(strlen(buffer), 0);
 
   // Write some data and flush to see the contents

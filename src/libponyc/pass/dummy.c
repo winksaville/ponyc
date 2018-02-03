@@ -9,16 +9,15 @@
 
 #include "../dbg/dbg_util.h"
 
-// Uncomment to use stub
-#define USE_STUB true
+#if 0
 
 // Uncomment to enable
 //#define DBG_ENABLED true
-#include "../dbg/dbg.h"
+//#include "../dbg/dbg.h"
 
 // Uncomment to enable AST debug
 //#define DBG_AST_ENABLED true
-#include "../dbg/dbg_ast.h"
+//#include "../dbg/dbg_ast.h"
 
 static void test0_dbg(void)
 {
@@ -141,49 +140,29 @@ static void test10_dbg(ast_t* ast)
   DASTS(ast);
   DPLX();
 }
-
-// Change to false for stub
-#if !USE_STUB
+#endif
 
 ast_result_t pass_pre_dummy(ast_t** astp, pass_opt_t* options)
 {
   MAYBE_UNUSED(options);
   ast_t* ast = *astp;
-  DPLE();
-  DAST(ast);
+  //DPLE();
+  //DAST(ast);
 
   switch(ast_id(ast))
   {
-    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
+    default: { /*DASTF(ast, "id=%d default ", ast_id(ast));*/ }
   }
 
-  DPLX("r=%d", AST_OK);
+  //DPLX("r=%d", AST_OK);
   return AST_OK;
 }
 
 ast_result_t pass_dummy(ast_t** astp, pass_opt_t* options)
 {
   MAYBE_UNUSED(options);
-  DPLE();
+  //DPLE();
   ast_t* ast = *astp;
-
-  // Test the debug code once
-  static bool once = false;
-  if (!once)
-  {
-    once = true;
-    test0_dbg();
-    test1_dbg();
-    test2_dbg();
-    test3_dbg();
-    test4_dbg();
-    test5_dbg();
-    test6_dbg();
-    test7_dbg();
-    test8_dbg(ast);
-    test9_dbg(ast);
-    test10_dbg(ast);
-  }
 
   bool r = true;
   switch(ast_id(ast))
@@ -191,44 +170,10 @@ ast_result_t pass_dummy(ast_t** astp, pass_opt_t* options)
     // Add TK_xx cases here such as
     case TK_REFERENCE: r = true; break;
 
-    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
+    default: { /*DASTF(ast, "id=%d default ", ast_id(ast));*/ }
   }
 
   ast_result_t result = pass_check_result(r, options);
-  DPLX("r=%d", result);
+  //DPLX("r=%d", result);
   return result;
 }
-
-#else
-
-ast_result_t pass_pre_dummy(ast_t** astp, pass_opt_t* options)
-{
-  MAYBE_UNUSED(options);
-  MAYBE_UNUSED(astp);
-  return AST_OK;
-}
-
-ast_result_t pass_dummy(ast_t** astp, pass_opt_t* options) {
-  MAYBE_UNUSED(astp);
-  MAYBE_UNUSED(options);
-  ast_t* ast = *astp;
-  static bool once = false;
-  if (!once)
-  {
-    once = true;
-    test0_dbg();
-    test1_dbg();
-    test2_dbg();
-    test3_dbg();
-    test4_dbg();
-    test5_dbg();
-    test6_dbg();
-    test7_dbg();
-    test8_dbg(ast);
-    test9_dbg(ast);
-    test10_dbg(ast);
-  }
-  return AST_OK;
-}
-
-#endif

@@ -8,6 +8,7 @@
 
 PONY_EXTERN_C_BEGIN
 
+#if 0
 #if !defined(DBG_FILE)
 #define DBG_FILE stdout
 #endif
@@ -91,6 +92,8 @@ PONY_EXTERN_C_BEGIN
  */
 #define DPLX(format, ...) \
   DFPL(DBG_FILE, "%s:- " format, __FUNCTION__, ## __VA_ARGS__)
+
+#endif
 
 PONY_EXTERN_C_END
 

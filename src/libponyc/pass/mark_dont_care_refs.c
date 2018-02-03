@@ -12,8 +12,8 @@
 static bool mark_dont_care_refs(pass_opt_t* opt, ast_t* ast)
 {
   MAYBE_UNUSED(opt);
-  DPLE();
-  DAST(ast);
+  //DPLE();
+  //DAST(ast);
 
   const char* name = ast_name(ast_child(ast));
   if(is_name_dontcare(name))
@@ -21,14 +21,14 @@ static bool mark_dont_care_refs(pass_opt_t* opt, ast_t* ast)
     ast_setid(ast, TK_DONTCAREREF);
   }
 
-  DPLX("r=%d", true);
+  //DPLX("r=%d", true);
   return true;
 }
 
 ast_result_t pass_mark_dont_care_refs(ast_t** astp, pass_opt_t* options)
 {
   MAYBE_UNUSED(options);
-  DPLE();
+  //DPLE();
   ast_t* ast = *astp;
 
   bool r = true;
@@ -36,10 +36,10 @@ ast_result_t pass_mark_dont_care_refs(ast_t** astp, pass_opt_t* options)
   {
     case TK_REFERENCE: r = mark_dont_care_refs(options, ast); break;
 
-    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
+    default: { } //DASTF(ast, "id=%d default ", ast_id(ast)); }
   }
 
   ast_result_t result = pass_check_result(r, options);
-  DPLX("r=%d", result);
+  //DPLX("r=%d", result);
   return result;
 }

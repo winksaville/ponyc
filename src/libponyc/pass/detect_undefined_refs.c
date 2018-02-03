@@ -12,8 +12,8 @@
 static bool detect_undefined_refs(pass_opt_t* opt, ast_t* ast)
 {
   bool result;
-  DPLE();
-  DAST(ast);
+  //DPLE();
+  //DAST(ast);
 
   const char* name = ast_name(ast_child(ast));
 
@@ -32,13 +32,13 @@ static bool detect_undefined_refs(pass_opt_t* opt, ast_t* ast)
     result = false;
   }
 
-  DPLX("r=%d", result);
+  //DPLX("r=%d", result);
   return result;
 }
 
 ast_result_t pass_detect_undefined_refs(ast_t** astp, pass_opt_t* options)
 {
-  DPLE();
+  //DPLE();
   ast_t* ast = *astp;
 
   bool r = true;
@@ -50,10 +50,10 @@ ast_result_t pass_detect_undefined_refs(ast_t** astp, pass_opt_t* options)
       break;
     }
 
-    default: { DASTF(ast, "id=%d default ", ast_id(ast)); }
+    default: { } //DASTF(ast, "id=%d default ", ast_id(ast)); }
   }
 
   ast_result_t result = pass_check_result(r, options);
-  DPLX("r=%d", result);
+  //DPLX("r=%d", result);
   return result;
 }

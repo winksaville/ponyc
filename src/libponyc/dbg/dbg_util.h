@@ -86,28 +86,33 @@
  * Convert a base_name and offset to an index into
  * the bits array.
  *
- * Example: bits can be defined by a base_name and offset and
- * placed in an enum. And the the dbg_bnoi macro can be used
- * to convert the base_name to a bits array index.
+ * Example: Bit regions can be defined with a base_name
+ * and size and placed in an enum.  First below define
+ * an enum with three bit resions with the names, first,
+ * second and another. And the the last enum is the size
+ * of the necessary bits array to hold these bit regions.
  *
  * enum {
  *   DBG_BITS_FIRST(first, 30),
- *   DBG_BITS_NEXT(dummy, 3, first),
- *   DBG_BITS_NEXT(another, 2, dummy),
+ *   DBG_BITS_NEXT(second, 3, first),
+ *   DBG_BITS_NEXT(another, 2, second),
  *   DBG_BITS_SIZE(bits_size, another)
  * };
  *
  *
- * The macro dbg_bnoi can now be used to convert
- * the base_name and an offset to a bit_idx. So
- * below we create debug context, dc, with enough
- * bits to over first, dummy, another. Next we
- * use dbg_bnoi to get the last bit of dummy and
- * print "Hello, World" because we've set the bit.
+ * Then the macro dbg_bnoi can be use to convert the
+ * base_name and an offset to an index into the bits array.
+ *
+ * Below is some code. We create debug context, dc, with
+ * bit_size used to allocate the bits array.  Next we use
+ * dbg_sb and dbg_bnoi to set the last bit, bit 2, of the
+ * second region. Followed with using dbg_pf and dbg_bnoi
+ * to print "Hello, World".  Finally, we destroy the debug
+ * context.
  *
  * dbg_ctx_t* dc = dbg_ctx_create(stderr, bits_size);
- * dbg_sb(dc, dbg_bnoi(dummy, 2), 1);
- * dbg_pf(dc, dbg_bnoi(dummy, 2), "Hello, %s\n", "World");
+ * dbg_sb(dc, dbg_bnoi(second, 2), 1);
+ * dbg_pf(dc, dbg_bnoi(second, 2), "Hello, %s\n", "World");
  * dbg_ctx_destroy(dc);
  */
 #define dbg_bnoi(base_name, offset) \

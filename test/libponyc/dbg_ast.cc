@@ -76,7 +76,7 @@ class DbgAstTest : public PassTest
     ast_t* program;
 };
 
-TEST_F(DbgAstTest, TestDbgAst)
+TEST_F(DbgAstTest, DbgAst)
 {
   const char* expected =
       "TestBody:  program (package:scope\n"
@@ -120,7 +120,7 @@ TEST_F(DbgAstTest, TestDbgAst)
   }
 }
 
-TEST_F(DbgAstTest, TestDbgAstf)
+TEST_F(DbgAstTest, DbgAstf)
 {
   const char* expected =
     "TestBody:  ast_child(actor)=(id main)\n";
@@ -142,7 +142,7 @@ TEST_F(DbgAstTest, TestDbgAstf)
   }
 }
 
-TEST_F(DbgAstTest, TestDbgAstp)
+TEST_F(DbgAstTest, DbgAstp)
 {
   const char* expected =
     "TestBody: id[0]: (id main)\n"
@@ -183,7 +183,7 @@ TEST_F(DbgAstTest, TestDbgAstp)
   }
 }
 
-TEST_F(DbgAstTest, TestDbgAsts)
+TEST_F(DbgAstTest, DbgAsts)
 {
   const char* expected =
     "TestBody id[0]: (id main)\n"

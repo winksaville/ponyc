@@ -7,7 +7,7 @@
 class DbgTest : public testing::Test
 {};
 
-TEST_F(DbgTest, TestDbgBi)
+TEST_F(DbgTest, DbgBi)
 {
   ASSERT_EQ(dbg_bi(0,0), 0);
   ASSERT_EQ(dbg_bi(0,1), 1);
@@ -15,7 +15,7 @@ TEST_F(DbgTest, TestDbgBi)
   ASSERT_EQ(dbg_bi(1,1), 2);
 }
 
-TEST_F(DbgTest, TestDbgBni)
+TEST_F(DbgTest, DbgBni)
 {
   ASSERT_EQ(dbg_bni(first,0), 0);
   ASSERT_EQ(dbg_bni(first,1), 1);
@@ -23,7 +23,7 @@ TEST_F(DbgTest, TestDbgBni)
   ASSERT_EQ(dbg_bni(dummy,1), 33);
 }
 
-TEST_F(DbgTest, TestDbgBitsArrayIdx)
+TEST_F(DbgTest, DbgBitsArrayIdx)
 {
   ASSERT_EQ(_DBG_BITS_ARRAY_IDX(0), 0);
   ASSERT_EQ(_DBG_BITS_ARRAY_IDX(31), 0);
@@ -33,7 +33,7 @@ TEST_F(DbgTest, TestDbgBitsArrayIdx)
   ASSERT_EQ(_DBG_BITS_ARRAY_IDX(95), 2);
 }
 
-TEST_F(DbgTest, TestDbgBitMask)
+TEST_F(DbgTest, DbgBitMask)
 {
   ASSERT_EQ(_DBG_BIT_MASK(0),  0x00000001);
   ASSERT_EQ(_DBG_BIT_MASK(1),  0x00000002);
@@ -44,7 +44,7 @@ TEST_F(DbgTest, TestDbgBitMask)
   ASSERT_EQ(_DBG_BIT_MASK(95), 0x80000000);
 }
 
-TEST_F(DbgTest, TestDbgInitDestroy)
+TEST_F(DbgTest, DbgInitDestroy)
 {
   // Verify data structure
   dbg_ctx_t* dc = dbg_ctx_create(NULL, 1);
@@ -60,7 +60,7 @@ TEST_F(DbgTest, TestDbgInitDestroy)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, TestDbgCtxBitsInitToZero)
+TEST_F(DbgTest, DbgCtxBitsInitToZero)
 {
   const uint32_t num_bits = 65;
   dbg_ctx_t* dc = dbg_ctx_create(NULL, num_bits);
@@ -162,7 +162,7 @@ TEST_F(DbgTest, TestWalkingTwoBits)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, TestDbgReadWriteBitsOfDummy)
+TEST_F(DbgTest, DbgReadWriteBitsOfDummy)
 {
   dbg_ctx_t* dc = dbg_ctx_create(NULL, dbg_bni(dummy, 2));
 
@@ -221,7 +221,7 @@ TEST_F(DbgTest, TestFmemopen)
   EXPECT_EQ(strcmp(buffer, "hi12"), 0);
 }
 
-TEST_F(DbgTest, TestDbgPfu)
+TEST_F(DbgTest, DbgPfu)
 {
   char buffer[8192];
 
@@ -239,7 +239,7 @@ TEST_F(DbgTest, TestDbgPfu)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, TestDbgPfnu)
+TEST_F(DbgTest, DbgPfnu)
 {
   char buffer[8192];
 
@@ -257,7 +257,7 @@ TEST_F(DbgTest, TestDbgPfnu)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, TestDbgflush)
+TEST_F(DbgTest, Dbgflush)
 {
   char buffer[8192];
 
@@ -354,7 +354,7 @@ TEST_F(DbgTest, TestFalsityOfDbgGb)
   fclose(memfile);
 }
 
-TEST_F(DbgTest, TestDbgPf)
+TEST_F(DbgTest, DbgPf)
 {
   char buffer[8192];
 
@@ -391,7 +391,7 @@ TEST_F(DbgTest, TestDbgPf)
   fclose(memfile);
 }
 
-TEST_F(DbgTest, TestDbgPfn)
+TEST_F(DbgTest, DbgPfn)
 {
   char buffer[8192];
 
@@ -415,7 +415,7 @@ TEST_F(DbgTest, TestDbgPfn)
   fclose(memfile);
 }
 
-TEST_F(DbgTest, TestDbgEX)
+TEST_F(DbgTest, DbgEX)
 {
   char buffer[8192];
 
@@ -436,7 +436,7 @@ TEST_F(DbgTest, TestDbgEX)
   fclose(memfile);
 }
 
-TEST_F(DbgTest, TestDbgPfeDbgPfx)
+TEST_F(DbgTest, DbgPfeDbgPfx)
 {
   char buffer[8192];
 

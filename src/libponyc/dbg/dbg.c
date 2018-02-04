@@ -4,7 +4,7 @@
 #include <string.h>
 
 
-dbg_ctx_t* dc_create(FILE* file, uint32_t number_of_bits)
+dbg_ctx_t* dbg_ctx_create(FILE* file, uint32_t number_of_bits)
 {
   dbg_ctx_t* dc = malloc(sizeof(dbg_ctx_t));
   pony_assert(dc != NULL);
@@ -15,7 +15,7 @@ dbg_ctx_t* dc_create(FILE* file, uint32_t number_of_bits)
   return dc;
 }
 
-void dc_destroy(dbg_ctx_t* dbg_ctx)
+void dbg_ctx_destroy(dbg_ctx_t* dbg_ctx)
 {
   free(dbg_ctx->bits);
   free(dbg_ctx);

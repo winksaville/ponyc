@@ -15,7 +15,7 @@
 #include "../../src/libponyc/dbg/dbg.h"
 
 #define DBG_AST_ENABLED true
-#define AST_PRINT_WIDTH 40
+#define DBG_AST_PRINT_WIDTH 40
 #include "../../src/libponyc/dbg/dbg_ast.h"
 
 
@@ -31,8 +31,8 @@ class DbgAstTest : public PassTest
       ASSERT_TRUE(memfile != NULL);
 
       // Create dc set bit 0
-      dc = dc_create(memfile, 1);
-      dc_sb(dc, 0, 1);
+      dc = dbg_ctx_create(memfile, 1);
+      dbg_sb(dc, 0, 1);
       // Create a "program" but I'm not sure what second parameter
       // to BUILD should be, for now just create an TK_ID?
       ast_t* node = ast_blank(TK_ID);
@@ -66,7 +66,7 @@ class DbgAstTest : public PassTest
     }
 
     virtual void TearDown() {
-      dc_destroy(dc);
+      dbg_ctx_destroy(dc);
       fclose(memfile);
     }
 
@@ -76,7 +76,7 @@ class DbgAstTest : public PassTest
     ast_t* program;
 };
 
-TEST_F(DbgAstTest, TestDast)
+TEST_F(DbgAstTest, TestDbgAst)
 {
   const char* expected =
       "TestBody:  program (package:scope\n"
@@ -103,9 +103,9 @@ TEST_F(DbgAstTest, TestDast)
       "  )\n"
       ")\n";
 
-  //ast_print(program, AST_PRINT_WIDTH);
-  DAST(dc, 0, program);
-  DCFLUSH(dc);
+  //ast_print(program, DBG_AST_PRINT_WIDTH);
+  DBG_AST(dc, 0, program);
+  DBG_FLUSH(dc);
 
   // Test if successful
   //printf("ast_text len=%zu buffer len=%zu\n",
@@ -120,7 +120,7 @@ TEST_F(DbgAstTest, TestDast)
   }
 }
 
-TEST_F(DbgAstTest, TestDastf)
+TEST_F(DbgAstTest, TestDbgAstf)
 {
   const char* expected =
     "TestBody:  ast_child(actor)=(id main)\n";
@@ -128,8 +128,8 @@ TEST_F(DbgAstTest, TestDastf)
   ast_t* module = ast_child(program);
   ast_t* actor = ast_child(module);
   ast_t* id = ast_child(actor);
-  DASTF(dc, 0, id, "ast_child(actor)=");
-  DCFLUSH(dc);
+  DBG_ASTF(dc, 0, id, "ast_child(actor)=");
+  DBG_FLUSH(dc);
   //printf("expected len=%zu buffer len=%zu\n",
   //  strlen(expected), strlen(buffer));
   if(strcmp(expected, buffer) != 0)
@@ -142,7 +142,7 @@ TEST_F(DbgAstTest, TestDastf)
   }
 }
 
-TEST_F(DbgAstTest, TestDastp)
+TEST_F(DbgAstTest, TestDbgAstp)
 {
   const char* expected =
     "TestBody: id[0]: (id main)\n"
@@ -169,8 +169,8 @@ TEST_F(DbgAstTest, TestDastp)
   ast_t* module = ast_child(program);
   ast_t* actor = ast_child(module);
   ast_t* id = ast_child(actor);
-  DASTP(dc, 0, id, 2);
-  DCFLUSH(dc);
+  DBG_ASTP(dc, 0, id, 2);
+  DBG_FLUSH(dc);
   //printf("expected len=%zu buffer len=%zu\n",
   //  strlen(expected), strlen(buffer));
   if(strcmp(expected, buffer) != 0)
@@ -183,7 +183,7 @@ TEST_F(DbgAstTest, TestDastp)
   }
 }
 
-TEST_F(DbgAstTest, TestDasts)
+TEST_F(DbgAstTest, TestDbgAsts)
 {
   const char* expected =
     "TestBody id[0]: (id main)\n"
@@ -207,8 +207,8 @@ TEST_F(DbgAstTest, TestDasts)
   ast_t* module = ast_child(program);
   ast_t* actor = ast_child(module);
   ast_t* id = ast_child(actor);
-  DASTS(dc, 0, id);
-  DCFLUSH(dc);
+  DBG_ASTS(dc, 0, id);
+  DBG_FLUSH(dc);
   //printf("expected len=%zu buffer len=%zu\n",
   //  strlen(expected), strlen(buffer));
   if(strcmp(expected, buffer) != 0)

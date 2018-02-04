@@ -1,26 +1,38 @@
 #include <gtest/gtest.h>
 #include <platform.h>
 
+#include "../../src/libponyc/dbg/dbg_util.h"
+
 #define DBG_ENABLED true
 #include "../../src/libponyc/dbg/dbg.h"
+
+/**
+ * Example of bits defined by a base_name and offset
+ * xxxx_bit_idx where base name is xxxx and xxxx_bit_idx
+ * is the offset for the first bit for base name in the
+ * bits array. xxxx_bit_cnt is the number of bit reserved
+ * for xxxx.
+ */
+enum {
+  DBG_BITS_FIRST(first, 30),
+  DBG_BITS_NEXT(dummy, 3, first),
+  DBG_BITS_NEXT(another, 2, dummy),
+  DBG_BITS_SIZE(bits_size, another)
+};
 
 class DbgTest : public testing::Test
 {};
 
-TEST_F(DbgTest, DbgBi)
+TEST_F(DbgTest, DbgBnoi)
 {
-  ASSERT_EQ(dbg_bi(0,0), 0);
-  ASSERT_EQ(dbg_bi(0,1), 1);
-  ASSERT_EQ(dbg_bi(1,0), 1);
-  ASSERT_EQ(dbg_bi(1,1), 2);
-}
-
-TEST_F(DbgTest, DbgBni)
-{
-  ASSERT_EQ(dbg_bni(first,0), 0);
-  ASSERT_EQ(dbg_bni(first,1), 1);
-  ASSERT_EQ(dbg_bni(dummy,0), 32);
-  ASSERT_EQ(dbg_bni(dummy,1), 33);
+  ASSERT_EQ(dbg_bnoi(first,0), 0);
+  ASSERT_EQ(dbg_bnoi(first,1), 1);
+  ASSERT_EQ(dbg_bnoi(dummy,0), 30);
+  ASSERT_EQ(dbg_bnoi(dummy,1), 31);
+  ASSERT_EQ(dbg_bnoi(dummy,2), 32);
+  ASSERT_EQ(dbg_bnoi(another,0), 33);
+  ASSERT_EQ(dbg_bnoi(another,1), 34);
+  ASSERT_EQ(bits_size, 30 + 3 + 2);
 }
 
 TEST_F(DbgTest, DbgBitsArrayIdx)
@@ -164,11 +176,11 @@ TEST_F(DbgTest, TestWalkingTwoBits)
 
 TEST_F(DbgTest, DbgReadWriteBitsOfDummy)
 {
-  dbg_ctx_t* dc = dbg_ctx_create(NULL, dbg_bni(dummy, 2));
+  dbg_ctx_t* dc = dbg_ctx_create(NULL, bits_size);
 
   // Get bit index of dummy[0] and dummy[1] they should be adjacent
-  uint32_t bi0 = dbg_bni(dummy, 0);
-  uint32_t bi1 = dbg_bni(dummy, 1);
+  uint32_t bi0 = dbg_bnoi(dummy, 0);
+  uint32_t bi1 = dbg_bnoi(dummy, 1);
   ASSERT_EQ(bi0 + 1, bi1);
 
   // Initially they should be zero

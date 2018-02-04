@@ -7,24 +7,11 @@
 
 PONY_EXTERN_C_BEGIN
 
-#define _DBG_DO(...) switch(0) case 0:do { __VA_ARGS__ } while(0)
-
-#define _DBG_BIT_IDX_NAME(base_name) (base_name ## _bit_idx)
-#define _DBG_BIT_CNT_NAME(base_name) (base_name ## _bit_cnt)
-
-#define _DBG_NEXT_IDX(base_name) (_DBG_BIT_IDX_NAME(base_name) + \
-                                    _DBG_BIT_CNT_NAME(base_name))
+//#define _DBG_DO(...) switch(0) case 0:
+#define _DBG_DO(...) do { __VA_ARGS__ } while(0)
 
 #define _DBG_BITS_ARRAY_IDX(bit_idx) ((bit_idx) / 32)
-
 #define _DBG_BIT_MASK(bit_idx) ((uint32_t)1 << (uint32_t)((bit_idx) & 0x1F))
-
-enum {
-  first_bit_idx = 0,
-  first_bit_cnt = 32,
-  dummy_bit_idx = _DBG_NEXT_IDX(first),
-  dummy_bit_cnt = 32,
-};
 
 typedef struct {
   FILE* file;
@@ -40,22 +27,6 @@ dbg_ctx_t* dbg_ctx_create(FILE* file, uint32_t number_of_bits);
  * Destroy a previously created dbg_ctx
  */
 void dbg_ctx_destroy(dbg_ctx_t* dbg_ctx);
-
-/**
- * Compute bit index from base_name and bit offsert
- * Convert base_name to base_name_bit_idx add bit_offset
- */
-#define dbg_bni(base_name, bit_offset) \
-  dbg_bi(_DBG_BIT_IDX_NAME(base_name), bit_offset)
-
-/**
- * Compute bit index and bit offsert
- * Simply adds the two values.
- */
-static inline uint32_t dbg_bi(uint32_t bit_base, uint32_t bit_offset)
-{
-  return bit_base + bit_offset;
-}
 
 /**
  * Set bit at bit_idx to bit_value
@@ -96,7 +67,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
  * Never a nop via conditional compilation and ignores ctx->bits
  */
 #define DBG_PFU(ctx, format, ...) \
-  _DBG_DO( fprintf(ctx->file, format, ## __VA_ARGS__); )
+  _DBG_DO(fprintf(ctx->file, format, ## __VA_ARGS__);)
 
 /**
  * Never a nop via conditional compilation and ignores ctx->bits

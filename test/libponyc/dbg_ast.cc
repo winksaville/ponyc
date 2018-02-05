@@ -115,7 +115,7 @@ TEST_F(DbgAstTest, DbgAst)
     ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
       "expected:" << std::endl <<
       "\"" << expected << "\"" << std::endl <<
-      "buffer:" << std::endl <<
+      "got:" << std::endl <<
       "\"" << buffer << "\"";
   }
 }
@@ -137,7 +137,7 @@ TEST_F(DbgAstTest, DbgAstf)
     ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
       "expected:" << std::endl <<
       "\"" << expected << "\"" << std::endl <<
-      "buffer:" << std::endl <<
+      "got:" << std::endl <<
       "\"" << buffer << "\"";
   }
 }
@@ -178,7 +178,7 @@ TEST_F(DbgAstTest, DbgAstp)
     ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
       "expected:" << std::endl <<
       "\"" << expected << "\"" << std::endl <<
-      "buffer:" << std::endl <<
+      "got:" << std::endl <<
       "\"" << buffer << "\"";
   }
 }
@@ -216,7 +216,7 @@ TEST_F(DbgAstTest, DbgAsts)
     ASSERT_TRUE(strcmp(expected, buffer) == 0) <<
       "expected:" << std::endl <<
       "\"" << expected << "\"" << std::endl <<
-      "buffer:" << std::endl <<
+      "got:" << std::endl <<
       "\"" << buffer << "\"";
   }
 }

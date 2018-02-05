@@ -23,7 +23,7 @@ enum {
 class DbgTest : public testing::Test
 {};
 
-TEST_F(DbgTest, TestFmemopen)
+TEST_F(DbgTest, Fmemopen)
 {
   char buffer[8192];
 
@@ -50,6 +50,31 @@ TEST_F(DbgTest, TestFmemopen)
   EXPECT_EQ(r, 0);
   EXPECT_EQ(strlen(buffer), 4);
   EXPECT_EQ(strcmp(buffer, "hi12"), 0);
+}
+
+TEST_F(DbgTest, DbgDoEmpty)
+{
+  // Should compile
+  _DBG_DO();
+}
+
+TEST_F(DbgTest, DbgDoSingleStatement)
+{
+  char buffer[8192];
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  _DBG_DO(fprintf(memfile, "Hi"));
+  fclose(memfile);
+  EXPECT_EQ(strcmp(buffer, "Hi"), 0);
+}
+
+TEST_F(DbgTest, DbgDoMultiStatement)
+{
+  char buffer[8192];
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  _DBG_DO(int i = 0; fprintf(memfile, "i=%d", i));
+  //fprintf(stderr, "i=%d", i); // This fails as i isn't in scope
+  fclose(memfile);
+  EXPECT_EQ(strcmp(buffer, "i=0"), 0);
 }
 
 TEST_F(DbgTest, DbgBitsArrayIdx)

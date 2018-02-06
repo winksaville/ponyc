@@ -25,6 +25,7 @@
 
 class DbgAstTest : public PassTest
 {
+#ifndef _MSC_VER
   protected:
     virtual void SetUp() {
       memfile = fmemopen(buffer, sizeof(buffer), "w+");
@@ -74,8 +75,10 @@ class DbgAstTest : public PassTest
     FILE* memfile;
     dbg_ctx_t* dc;
     ast_t* program;
+#endif
 };
 
+#ifndef _MSC_VER
 TEST_F(DbgAstTest, DbgAst)
 {
   const char* expected =
@@ -220,3 +223,4 @@ TEST_F(DbgAstTest, DbgAsts)
       "\"" << buffer << "\"";
   }
 }
+#endif

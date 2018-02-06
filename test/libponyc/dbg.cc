@@ -23,41 +23,33 @@ enum {
 class DbgTest : public testing::Test
 {};
 
-TEST_F(DbgTest, Fmemopen)
-{
-  char buffer[8192];
-
-  // Create memory file use "w+" so the first byte is a 0
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  ASSERT_TRUE(memfile != NULL);
-  EXPECT_EQ(strlen(buffer), 0);
-
-  // Write some data and flush to see the contents
-  fprintf(memfile, "hi");
-  fflush(memfile);
-  EXPECT_EQ(strlen(buffer), 2);
-  EXPECT_EQ(strcmp(buffer, "hi"), 0);
-
-  // If we don't flush then the data may or may not
-  // be in the buffer so we can't expect anything.
-  fprintf(memfile, "1");
-  fprintf(memfile, "2");
-  //EXPECT_NE(strcmp(buffer, "hi12"), 0);
-
-  // Closing will flush and close now we can
-  // expect the data to be in the buffer
-  int r = fclose(memfile);
-  EXPECT_EQ(r, 0);
-  EXPECT_EQ(strlen(buffer), 4);
-  EXPECT_EQ(strcmp(buffer, "hi12"), 0);
-}
-
 TEST_F(DbgTest, DbgDoEmpty)
 {
   // Should compile
   _DBG_DO();
 }
 
+TEST_F(DbgTest, DbgPsnuEasy)
+{
+  dbg_ctx_t* dc = dbg_ctx_create(stdout, 3);
+  ASSERT_TRUE(dc != NULL);
+
+  DBG_PSNU(dc, "hi\n");
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPfnuEasy)
+{
+  dbg_ctx_t* dc = dbg_ctx_create(stdout, 3);
+  ASSERT_TRUE(dc != NULL);
+
+  DBG_PFNU(dc, "Yo %s\n", "Dude");
+
+  dbg_ctx_destroy(dc);
+}
+
+#ifndef _MSC_VER
 TEST_F(DbgTest, DbgDoSingleStatement)
 {
   char buffer[8192];
@@ -134,7 +126,7 @@ TEST_F(DbgTest, DbgCtxBitsInitToZero)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, TestWalkingOneBit)
+TEST_F(DbgTest, WalkingOneBit)
 {
   const uint32_t num_bits = 29;
   dbg_ctx_t* dc = dbg_ctx_create(NULL, num_bits);
@@ -174,7 +166,7 @@ TEST_F(DbgTest, TestWalkingOneBit)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, TestWalkingTwoBits)
+TEST_F(DbgTest, WalkingTwoBits)
 {
   const uint32_t num_bits = 147;
   dbg_ctx_t* dc = dbg_ctx_create(NULL, num_bits);
@@ -227,9 +219,27 @@ TEST_F(DbgTest, DbgPfu)
   dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
 
   // Validate DBG_PFU still prints and after fclose buffer is valid
-  DBG_PFU(dc, "123");
+  DBG_PFU(dc, "v=%d", 123);
   fclose(memfile);
-  EXPECT_EQ(strcmp("123", buffer), 0);
+  EXPECT_EQ(strcmp("v=123", buffer), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPsu)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  // Create dc all bits are off
+  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+
+  // Validate DBG_PFU still prints and after fclose buffer is valid
+  DBG_PSU(dc, "v=123");
+  fclose(memfile);
+  EXPECT_EQ(strcmp("v=123", buffer), 0);
 
   dbg_ctx_destroy(dc);
 }
@@ -245,9 +255,27 @@ TEST_F(DbgTest, DbgPfnu)
   dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
 
   // Validate DBG_PFU still prints and after fclose buffer is valid
-  DBG_PFNU(dc, "123");
+  DBG_PFNU(dc, "v=%d", 123);
   fclose(memfile);
-  EXPECT_EQ(strcmp("TestBody:  123", buffer), 0);
+  EXPECT_EQ(strcmp("TestBody:  v=123", buffer), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPsnu)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  // Create dc all bits are off
+  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+
+  // Validate DBG_PFU still prints and after fclose buffer is valid
+  DBG_PSNU(dc, "v=123");
+  fclose(memfile);
+  EXPECT_EQ(strcmp("TestBody:  v=123", buffer), 0);
 
   dbg_ctx_destroy(dc);
 }
@@ -262,7 +290,7 @@ TEST_F(DbgTest, Dbgflush)
   dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
 
   // Validate DBG_FLUSH can be used instead of fclose
-  DBG_PFU(dc, "123");
+  DBG_PSU(dc, "123");
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("123", buffer), 0);
 
@@ -270,36 +298,7 @@ TEST_F(DbgTest, Dbgflush)
   fclose(memfile);
 }
 
-TEST_F(DbgTest, TestFseek)
-{
-  char buffer[8192];
-
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  ASSERT_TRUE(memfile != NULL);
-
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
-
-  // Write something
-  DBG_PFU(dc, "123");
-  EXPECT_EQ(ftell(memfile), 3);
-  DBG_FLUSH(dc);
-  EXPECT_EQ(strcmp("123", buffer), 0);
-
-  // fseek back to beginning, write and verify.
-  // NOTE: The behavior of not writing a zero when flushing
-  // means using fseek to reuse a buffer is not advisible
-  // in general.
-  fseek(memfile, 0, SEEK_SET);
-  EXPECT_EQ(ftell(memfile), 0);
-  DBG_PFU(dc, "45");
-  DBG_FLUSH(dc);
-  EXPECT_EQ(strcmp("453", buffer), 0);
-
-  dbg_ctx_destroy(dc);
-  fclose(memfile);
-}
-
-TEST_F(DbgTest, TestTruthfulnessOfDbgGb)
+TEST_F(DbgTest, DbgGbTruthfulness)
 {
   char buffer[8192];
 
@@ -325,7 +324,7 @@ TEST_F(DbgTest, TestTruthfulnessOfDbgGb)
   fclose(memfile);
 }
 
-TEST_F(DbgTest, TestFalsityOfDbgGb)
+TEST_F(DbgTest, DbgGbFalsity)
 {
   char buffer[8192];
 
@@ -360,25 +359,62 @@ TEST_F(DbgTest, DbgPf)
 
   // Validate nothing is printed after creating
   // because bit is 0
-  DBG_PF(dc, 0, "123");
+  DBG_PF(dc, 0, "%d", 123);
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("", buffer), 0);
 
   // Now set bit and verify something is printed
   dbg_sb(dc, 0, true);
-  DBG_PF(dc, 0, "456");
+  DBG_PF(dc, 0, "%d", 456);
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("456", buffer), 0);
 
   // Now clear bit and verify nothing is added
   dbg_sb(dc, 0, false);
-  DBG_PF(dc, 0, "789");
+  DBG_PF(dc, 0, "%d", 789);
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("456", buffer), 0);
 
   // Now set bit and verify it is now added
   dbg_sb(dc, 0, true);
-  DBG_PF(dc, 0, "789\n");
+  DBG_PF(dc, 0, "%d\n", 789);
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("456789\n", buffer), 0);
+
+  dbg_ctx_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgTest, DbgPs)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+
+  // Validate nothing is printed after creating
+  // because bit is 0
+  DBG_PS(dc, 0, "123");
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("", buffer), 0);
+
+  // Now set bit and verify something is printed
+  dbg_sb(dc, 0, true);
+  DBG_PS(dc, 0, "456");
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("456", buffer), 0);
+
+  // Now clear bit and verify nothing is added
+  dbg_sb(dc, 0, false);
+  DBG_PS(dc, 0, "789");
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("456", buffer), 0);
+
+  // Now set bit and verify it is now added
+  dbg_sb(dc, 0, true);
+  DBG_PS(dc, 0, "789\n");
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("456789\n", buffer), 0);
 
@@ -397,12 +433,36 @@ TEST_F(DbgTest, DbgPfn)
 
   // Now set bit print with function name and verify
   dbg_sb(dc, 0, true);
-  DBG_PFN(dc, 0, "456");
+  DBG_PFN(dc, 0, "%d", 456);
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("TestBody:  456", buffer), 0);
 
   // Now append somethign using DBG_PF (no function name) and verify
-  DBG_PF(dc, 0, "789\n");
+  DBG_PF(dc, 0, "%d\n", 789);
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:  456789\n", buffer), 0);
+
+  dbg_ctx_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgTest, DbgPsn)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+
+  // Now set bit print with function name and verify
+  dbg_sb(dc, 0, true);
+  DBG_PSN(dc, 0, "456");
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:  456", buffer), 0);
+
+  // Now append somethign using DBG_PF (no function name) and verify
+  DBG_PS(dc, 0, "789\n");
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("TestBody:  456789\n", buffer), 0);
 
@@ -444,7 +504,29 @@ TEST_F(DbgTest, DbgPfeDbgPfx)
   // Validate nothing is printed after creating
   // because bit is 0
   DBG_PFE(dc, 0, "Hello, %s\n", "World");
-  DBG_PFX(dc, 0, "Good bye\n");
+  DBG_PFX(dc, 0, "%s", "Good bye\n");
+  DBG_FLUSH(dc);
+  EXPECT_EQ(strcmp("TestBody:+ Hello, World\nTestBody:- Good bye\n",
+        buffer), 0);
+
+  dbg_ctx_destroy(dc);
+  fclose(memfile);
+}
+
+TEST_F(DbgTest, DbgPfeDbgPsx)
+{
+  char buffer[8192];
+
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  ASSERT_TRUE(memfile != NULL);
+
+  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_sb(dc, 0, true);
+
+  // Validate nothing is printed after creating
+  // because bit is 0
+  DBG_PSE(dc, 0, "Hello, World\n");
+  DBG_PSX(dc, 0, "Good bye\n");
   DBG_FLUSH(dc);
   EXPECT_EQ(strcmp("TestBody:+ Hello, World\nTestBody:- Good bye\n",
         buffer), 0);
@@ -494,3 +576,4 @@ TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
 
   dbg_ctx_destroy(dc);
 }
+#endif

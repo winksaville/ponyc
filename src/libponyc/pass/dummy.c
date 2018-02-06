@@ -35,6 +35,12 @@ FINALIZER(finalize)
 
 static inline void maybe_enable_debug(ast_t* ast, pass_opt_t* opt)
 {
+  // If initialize didn't run, for instance in Windows do it now.
+  if(dc == NULL)
+  {
+    initialize();
+  }
+
   UNUSED(opt);
   switch(ast_id(ast))
   {
@@ -46,7 +52,8 @@ static inline void maybe_enable_debug(ast_t* ast, pass_opt_t* opt)
         //dbg_sb(dc, 0, 1);
         //dbg_sb(dc, 1, 1);
         dbg_sb(dc, 2, 1);
-        DBG_PFNU(dc, "TK_CLASS name=\"C\"\n");
+        DBG_PFNU(dc, "TK_CLASS name=\"%s\"\n", name);
+        DBG_PSNU(dc, "TK_CLASS name=\"C\"\n");
       }
       break;
     }
@@ -67,7 +74,7 @@ static inline void maybe_disable_debug(ast_t* ast, pass_opt_t* opt)
         dbg_sb(dc, 0, 0);
         dbg_sb(dc, 1, 0);
         dbg_sb(dc, 2, 0);
-        DBG_PFNU(dc, "TK_CLASS name=\"C\"\n");
+        DBG_PFNU(dc, "TK_CLASS name=\"%s\"\n", name);
       }
       break;
     }
@@ -85,6 +92,7 @@ ast_result_t pass_pre_dummy(ast_t** astp, pass_opt_t* options)
 
   switch(ast_id(ast))
   {
+    case TK_CLASS: // Windows insists you should have cases
     default: { DBG_ASTF(dc, 2, ast, "id=%d default ", ast_id(ast)); }
   }
 

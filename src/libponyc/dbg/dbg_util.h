@@ -39,13 +39,16 @@
  *   fprintf(stderr, "finalize:# %s\n", __FILE__);
  * }
  */
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
+#if 0
+// Disable for MSC as we get an error something like:
+// "waring LNK4078 multiple sections are defined with different attributes"
 
 #define INITIALIZER(f) \
   static void f(); \
-  static int __f1(){f();return 0;} \
+  static int __i1(){f();return 0;} \
   __pragma(data_seg(".CRT$XIU")) \
-  static int(*__f2) () = __f1; \
+  static int(*__i2) () = __i1; \
   __pragma(data_seg()) \
   static void f()
 

@@ -6,7 +6,7 @@
 
 dbg_ctx_t* dbg_ctx_create(FILE* file, uint32_t number_of_bits)
 {
-  dbg_ctx_t* dc = malloc(sizeof(dbg_ctx_t));
+  dbg_ctx_t* dc = (dbg_ctx_t*)malloc(sizeof(dbg_ctx_t));
   pony_assert(dc != NULL);
   dc->file = file;
   dc->bits = (uint32_t*)calloc(1, ((number_of_bits + 31) / 32) * 32);

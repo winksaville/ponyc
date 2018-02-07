@@ -31,7 +31,7 @@ TEST_F(DbgTest, DbgDoEmpty)
 
 TEST_F(DbgTest, DbgPsnuEasy)
 {
-  dbg_ctx_t* dc = dbg_ctx_create(stdout, 3);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stdout, 3);
   ASSERT_TRUE(dc != NULL);
 
   DBG_PSNU(dc, "hi\n");
@@ -41,7 +41,7 @@ TEST_F(DbgTest, DbgPsnuEasy)
 
 TEST_F(DbgTest, DbgPfnuEasy)
 {
-  dbg_ctx_t* dc = dbg_ctx_create(stdout, 3);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stdout, 3);
   ASSERT_TRUE(dc != NULL);
 
   DBG_PFNU(dc, "Yo %s\n", "Dude");
@@ -90,26 +90,38 @@ TEST_F(DbgTest, DbgBitMask)
   EXPECT_EQ(_DBG_BIT_MASK(95), 0x80000000);
 }
 
-TEST_F(DbgTest, DbgInitDestroy)
+TEST_F(DbgTest, DbgCreateDestroy)
 {
   // Verify data structure
-  dbg_ctx_t* dc = dbg_ctx_create(NULL, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file((FILE*)0x1000, 1);
   ASSERT_TRUE(dc->bits != NULL);
   EXPECT_EQ(dc->bits[0], 0);
-  EXPECT_TRUE(dc->file == NULL);
+  EXPECT_TRUE(dc->dst_file == (FILE*)0x1000);
+  EXPECT_TRUE(dc->dst_buf == NULL);
+  EXPECT_EQ(dc->dst_buf_size, 0);
   dbg_ctx_destroy(dc);
 
-  dc = dbg_ctx_create(stdout, 1);
+  dc = dbg_ctx_create_with_dst_file(stdout, 1);
   ASSERT_TRUE(dc->bits != NULL);
   EXPECT_EQ(dc->bits[0], 0);
-  EXPECT_EQ(dc->file, stdout);
+  EXPECT_TRUE(dc->dst_file == stdout);
+  EXPECT_TRUE(dc->dst_buf == NULL);
+  EXPECT_EQ(dc->dst_buf_size, 0);
+  dbg_ctx_destroy(dc);
+
+  dc = dbg_ctx_create_with_dst_buf(0x1000, 1);
+  ASSERT_TRUE(dc->bits != NULL);
+  EXPECT_EQ(dc->bits[0], 0);
+  EXPECT_TRUE(dc->dst_file == NULL);
+  EXPECT_TRUE(dc->dst_buf != NULL);
+  EXPECT_EQ(dc->dst_buf_size, 0x1000);
   dbg_ctx_destroy(dc);
 }
 
 TEST_F(DbgTest, DbgCtxBitsInitToZero)
 {
   const uint32_t num_bits = 65;
-  dbg_ctx_t* dc = dbg_ctx_create(NULL, num_bits);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, num_bits);
 
   // Verify all bits are zero
   for(uint32_t bi = 0; bi < num_bits; bi++)
@@ -129,7 +141,7 @@ TEST_F(DbgTest, DbgCtxBitsInitToZero)
 TEST_F(DbgTest, WalkingOneBit)
 {
   const uint32_t num_bits = 29;
-  dbg_ctx_t* dc = dbg_ctx_create(NULL, num_bits);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, num_bits);
 
   // Walking one bit
   for(uint32_t bi = 0; bi < num_bits; bi++)
@@ -169,7 +181,7 @@ TEST_F(DbgTest, WalkingOneBit)
 TEST_F(DbgTest, WalkingTwoBits)
 {
   const uint32_t num_bits = 147;
-  dbg_ctx_t* dc = dbg_ctx_create(NULL, num_bits);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, num_bits);
 
   // Number bits must be >= 2
   EXPECT_TRUE(num_bits >= 2);
@@ -216,7 +228,7 @@ TEST_F(DbgTest, DbgPfu)
   ASSERT_TRUE(memfile != NULL);
 
   // Create dc all bits are off
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate DBG_PFU still prints and after fclose buffer is valid
   DBG_PFU(dc, "v=%d", 123);
@@ -234,7 +246,7 @@ TEST_F(DbgTest, DbgPsu)
   ASSERT_TRUE(memfile != NULL);
 
   // Create dc all bits are off
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate DBG_PFU still prints and after fclose buffer is valid
   DBG_PSU(dc, "v=123");
@@ -252,7 +264,7 @@ TEST_F(DbgTest, DbgPfnu)
   ASSERT_TRUE(memfile != NULL);
 
   // Create dc all bits are off
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate DBG_PFU still prints and after fclose buffer is valid
   DBG_PFNU(dc, "v=%d", 123);
@@ -270,7 +282,7 @@ TEST_F(DbgTest, DbgPsnu)
   ASSERT_TRUE(memfile != NULL);
 
   // Create dc all bits are off
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate DBG_PFU still prints and after fclose buffer is valid
   DBG_PSNU(dc, "v=123");
@@ -287,7 +299,7 @@ TEST_F(DbgTest, Dbgflush)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate DBG_FLUSH can be used instead of fclose
   DBG_PSU(dc, "123");
@@ -306,7 +318,7 @@ TEST_F(DbgTest, DbgGbTruthfulness)
   ASSERT_TRUE(memfile != NULL);
 
   // Use true for setting and see what's returned
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   dbg_sb(dc, 0, true);
   EXPECT_EQ(dbg_gb(dc, 0), true);
   EXPECT_EQ(dbg_gb(dc, 0), 1);
@@ -331,7 +343,7 @@ TEST_F(DbgTest, DbgGbFalsity)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   dbg_sb(dc, 0, 0);
   EXPECT_EQ(dbg_gb(dc, 0), false);
   EXPECT_EQ(dbg_gb(dc, 0), 0);
@@ -355,7 +367,7 @@ TEST_F(DbgTest, DbgPf)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate nothing is printed after creating
   // because bit is 0
@@ -392,7 +404,7 @@ TEST_F(DbgTest, DbgPs)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Validate nothing is printed after creating
   // because bit is 0
@@ -429,7 +441,7 @@ TEST_F(DbgTest, DbgPfn)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Now set bit print with function name and verify
   dbg_sb(dc, 0, true);
@@ -453,7 +465,7 @@ TEST_F(DbgTest, DbgPsn)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
 
   // Now set bit print with function name and verify
   dbg_sb(dc, 0, true);
@@ -477,7 +489,7 @@ TEST_F(DbgTest, DbgEX)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   dbg_sb(dc, 0, true);
 
   // Validate nothing is printed after creating
@@ -498,7 +510,7 @@ TEST_F(DbgTest, DbgPfeDbgPfx)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   dbg_sb(dc, 0, true);
 
   // Validate nothing is printed after creating
@@ -520,7 +532,7 @@ TEST_F(DbgTest, DbgPfeDbgPsx)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   ASSERT_TRUE(memfile != NULL);
 
-  dbg_ctx_t* dc = dbg_ctx_create(memfile, 1);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   dbg_sb(dc, 0, true);
 
   // Validate nothing is printed after creating
@@ -549,7 +561,7 @@ TEST_F(DbgTest, DbgBnoi)
 
 TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
 {
-  dbg_ctx_t* dc = dbg_ctx_create(NULL, bits_size);
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, bits_size);
 
   // Get bit index of second[0] and second[1] they should be adjacent
   uint32_t bi0 = dbg_bnoi(second, 0);

@@ -113,7 +113,7 @@
  * to print "Hello, World".  Finally, we destroy the debug
  * context.
  *
- * dbg_ctx_t* dc = dbg_ctx_create(stderr, bits_size);
+ * dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, bits_size);
  * dbg_sb(dc, dbg_bnoi(second, 2), 1);
  * dbg_pf(dc, dbg_bnoi(second, 2), "Hello, %s\n", "World");
  * dbg_ctx_destroy(dc);

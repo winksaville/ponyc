@@ -21,7 +21,7 @@
 static dbg_ctx_t* dc = NULL;
 INITIALIZER(initialize)
 {
-  dc = dbg_ctx_create(stderr, 32);
+  dc = dbg_ctx_create_with_dst_file(stderr, 32);
   fprintf(stderr, "initialize:# %s\n", __FILE__);
 }
 

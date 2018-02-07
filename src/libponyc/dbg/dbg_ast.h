@@ -21,8 +21,8 @@
     if(DBG_AST_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
       { \
-        fprintf(ctx->file, "%s:  %s ", __FUNCTION__, dbg_str(ast)); \
-        ast_fprint(ctx->file, ast, DBG_AST_PRINT_WIDTH); \
+        fprintf(ctx->dst_file, "%s:  %s ", __FUNCTION__, dbg_str(ast)); \
+        ast_fprint(ctx->dst_file, ast, DBG_AST_PRINT_WIDTH); \
       })
 
 #define DBG_ASTF(ctx, bit_idx, ast, format, ...) \
@@ -30,8 +30,8 @@
     if(DBG_AST_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
       { \
-        fprintf(ctx->file, "%s:  " format, __FUNCTION__, ## __VA_ARGS__); \
-        ast_fprint(ctx->file, ast, DBG_AST_PRINT_WIDTH); \
+        fprintf(ctx->dst_file, "%s:  " format, __FUNCTION__, ## __VA_ARGS__); \
+        ast_fprint(ctx->dst_file, ast, DBG_AST_PRINT_WIDTH); \
       })
 
 // Debug ast_print_and_parents
@@ -41,8 +41,8 @@
       if(dbg_gb(ctx, bit_idx)) \
         for(int i=0; (ast != NULL) && (i < number); i++) \
         { \
-          fprintf(ctx->file, "%s: %s[%d]: ", __FUNCTION__, dbg_str(ast), -i); \
-          ast_fprint(ctx->file, ast, DBG_AST_PRINT_WIDTH); \
+          fprintf(ctx->dst_file, "%s: %s[%d]: ", __FUNCTION__, dbg_str(ast), -i); \
+          ast_fprint(ctx->dst_file, ast, DBG_AST_PRINT_WIDTH); \
           ast = ast_parent(ast); \
         })
 
@@ -56,8 +56,8 @@
         ast_t* child = ast_child(parent); \
         for(int i=0; (child != NULL); i++) \
         { \
-          fprintf(ctx->file, "%s %s[%d]: ", __FUNCTION__, dbg_str(ast), i); \
-          ast_fprint(ctx->file, child, DBG_AST_PRINT_WIDTH); \
+          fprintf(ctx->dst_file, "%s %s[%d]: ", __FUNCTION__, dbg_str(ast), i); \
+          ast_fprint(ctx->dst_file, child, DBG_AST_PRINT_WIDTH); \
           child = ast_sibling(child); \
         } \
       })

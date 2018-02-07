@@ -32,7 +32,7 @@ class DbgAstTest : public PassTest
       ASSERT_TRUE(memfile != NULL);
 
       // Create dc set bit 0
-      dc = dbg_ctx_create(memfile, 1);
+      dc = dbg_ctx_create_with_dst_file(memfile, 1);
       dbg_sb(dc, 0, 1);
       // Create a "program" but I'm not sure what second parameter
       // to BUILD should be, for now just create an TK_ID?

@@ -17,14 +17,22 @@ PONY_EXTERN_C_BEGIN
 #define _DBG_BIT_MASK(bit_idx) ((uint32_t)1 << (uint32_t)((bit_idx) & 0x1F))
 
 typedef struct {
-  FILE* file;
+  FILE* dst_file;
+  char* dst_buf;
+  size_t dst_buf_size;
   uint32_t* bits;
 } dbg_ctx_t;
 
 /**
- * Create a dbg_ctx
+ * Create a dbg_ctx with char buf as destination
  */
-dbg_ctx_t* dbg_ctx_create(FILE* file, uint32_t number_of_bits);
+dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_size,
+    uint32_t number_of_bits);
+
+/**
+ * Create a dbg_ctx with a FILE as as destination
+ */
+dbg_ctx_t* dbg_ctx_create_with_dst_file(FILE* dst, uint32_t number_of_bits);
 
 /**
  * Destroy a previously created dbg_ctx
@@ -70,31 +78,31 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
  * Unconditionally print, ignores ctx->bits
  */
 #define DBG_PFU(ctx, format, ...) \
-  _DBG_DO(fprintf(ctx->file, format, __VA_ARGS__))
+  _DBG_DO(fprintf(ctx->dst_file, format, __VA_ARGS__))
 
 /**
  * Unconditionally print a string, ignores ctx->bits
  * Needed for use on Windows
  */
 #define DBG_PSU(ctx, str) \
-  _DBG_DO(fprintf(ctx->file, str))
+  _DBG_DO(fprintf(ctx->dst_file, str))
 
 /**
  * Unconditionally print with function name, ignores ctx->bits
  */
 #define DBG_PFNU(ctx, format, ...) \
-  _DBG_DO(fprintf(ctx->file, "%s:  " format, __FUNCTION__, __VA_ARGS__))
+  _DBG_DO(fprintf(ctx->dst_file, "%s:  " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Unconditionally print string with function name, ignores ctx->bits
  */
 #define DBG_PSNU(ctx, str) \
-  _DBG_DO(fprintf(ctx->file, "%s:  " str, __FUNCTION__))
+  _DBG_DO(fprintf(ctx->dst_file, "%s:  " str, __FUNCTION__))
 
 /**
  * Flush ctx file
  */
-#define DBG_FLUSH(ctx) _DBG_DO(fflush(ctx->file))
+#define DBG_FLUSH(ctx) _DBG_DO(fflush(ctx->dst_file))
 
 /**
  * Printf if bit_idx is set
@@ -103,7 +111,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
     if(DBG_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->file, format, __VA_ARGS__))
+        fprintf(ctx->dst_file, format, __VA_ARGS__))
 
 /**
  * Print string if bit_idx is set
@@ -112,7 +120,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
     if(DBG_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->file, str))
+        fprintf(ctx->dst_file, str))
 
 /**
  * Printf with leading "<funcName>:  " if bit_idx is set
@@ -121,7 +129,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
     if(DBG_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->file, "%s:  " format, __FUNCTION__, __VA_ARGS__))
+        fprintf(ctx->dst_file, "%s:  " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Print string with leading "<funcName>:  " if bit_idx is set
@@ -130,7 +138,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
     if(DBG_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->file, "%s:  " str, __FUNCTION__))
+        fprintf(ctx->dst_file, "%s:  " str, __FUNCTION__))
 
 /**
  * "Enter routine" prints "<funcName>:+\n" if bit_idx is set
@@ -139,7 +147,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
     if(DBG_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->file, "%s:+\n", __FUNCTION__))
+        fprintf(ctx->dst_file, "%s:+\n", __FUNCTION__))
 
 /**
  * Enter routine print leading functionName:+ and new line
@@ -149,7 +157,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
      if(DBG_ENABLED) \
        if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->file, "%s:+ " format, __FUNCTION__, __VA_ARGS__))
+         fprintf(ctx->dst_file, "%s:+ " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Enter routine print string with leading functionName:+ and new line
@@ -159,7 +167,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
      if(DBG_ENABLED) \
        if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->file, "%s:+ " str, __FUNCTION__))
+         fprintf(ctx->dst_file, "%s:+ " str, __FUNCTION__))
 
 /**
  * "Exit routine" prints "<funcName>:-\n" if bit_idx is set
@@ -168,7 +176,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
     if(DBG_ENABLED) \
       if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->file, "%s:-\n", __FUNCTION__))
+        fprintf(ctx->dst_file, "%s:-\n", __FUNCTION__))
 
 /**
  * Exit routine print leading functionName:+ and new line
@@ -178,7 +186,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
      if(DBG_ENABLED) \
        if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->file, "%s:- " format, __FUNCTION__, __VA_ARGS__))
+         fprintf(ctx->dst_file, "%s:- " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Exit routine print string with leading functionName:+ and new line
@@ -188,7 +196,7 @@ void dbg_destroy(dbg_ctx_t* dbg_ctx);
   _DBG_DO( \
      if(DBG_ENABLED) \
        if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->file, "%s:- " str, __FUNCTION__))
+         fprintf(ctx->dst_file, "%s:- " str, __FUNCTION__))
 
 PONY_EXTERN_C_END
 

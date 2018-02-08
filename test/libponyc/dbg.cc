@@ -114,7 +114,7 @@ TEST_F(DbgTest, DbgCreateDestroy)
   EXPECT_EQ(dc->bits[0], 0);
   EXPECT_TRUE(dc->dst_file == NULL);
   EXPECT_TRUE(dc->dst_buf != NULL);
-  EXPECT_EQ(dc->dst_buf_size, 0x1000);
+  EXPECT_EQ(dc->dst_buf_size, 0x1000); // - 1);
   dbg_ctx_destroy(dc);
 }
 
@@ -220,23 +220,385 @@ TEST_F(DbgTest, WalkingTwoBits)
   dbg_ctx_destroy(dc);
 }
 
+void dump(const char* leader, char *p, size_t l)
+{
+  printf("%s: ", leader);
+  for(size_t i = 0; i < l; i++)
+  {
+    unsigned char c = *p++;
+    if(isalpha(c))
+      printf("%c", c);
+    else
+      printf("<%02x>", c);
+  }
+  printf("\n");
+}
+
 TEST_F(DbgTest, DbgPfu)
 {
-  char buffer[8192];
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+  //printf("DbgPfuDbgSimple: dst_buf size=%zu begi=%zu endi=%zu\n", 
+  //    dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  ASSERT_TRUE(memfile != NULL);
-
-  // Create dc all bits are off
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
-
-  // Validate DBG_PFU still prints and after fclose buffer is valid
-  DBG_PFU(dc, "v=%d", 123);
-  fclose(memfile);
-  EXPECT_EQ(strcmp("v=123", buffer), 0);
+  DBG_PFU(dc, "%s", "a");
+  //printf("DbgPfuDbgSimple: dst_buf size=%zu begi=%zu endi=%zu\n", 
+  //    dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  EXPECT_EQ(strcmp("a", dbg_get_buf(dc)), 0);
 
   dbg_ctx_destroy(dc);
 }
+
+TEST_F(DbgTest, DbgPfuSmallBufWriteReadRead)
+{
+  char buf[2];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+  //printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n", 
+  //    dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+
+  // Write one char, "a"
+  //printf("DbgPfuDbgRead: write a\n");
+  DBG_PFU(dc, "%s", "a");
+  //dump("DbgPfuDbgRead dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read it back and verify "a" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_EQ(strcmp("a", buf), 0);
+
+  // Read it again, it should now be empty
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  EXPECT_EQ(cnt, 0);
+  EXPECT_EQ(strcmp("", buf), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+
+TEST_F(DbgTest, DbgPfuSmallBufWriteReadWriteReadWriteRead)
+{
+  char buf[2];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n", 
+      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+
+  // Write one char, "a"
+  //printf("DbgPfuDbgRead: write a\n");
+  DBG_PFU(dc, "%s", "a");
+  //dump("DbgPfuDbgRead dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read it back and verify "a" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_EQ(strcmp("a", buf), 0);
+
+  // Write one char, "b"
+  //printf("DbgPfuDbgRead: write b\n");
+  DBG_PFU(dc, "%s", "b");
+  //dump("DbgPfuDbgRead dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read it back and verify "b" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_EQ(strcmp("b", buf), 0);
+
+  // Write one char, "c"
+  //printf("DbgPfuDbgRead: write c\n");
+  DBG_PFU(dc, "%s", "c");
+  //dump("DbgPfuDbgRead dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read it back and verify "c" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_EQ(strcmp("c", buf), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPfuFillEmpty)
+{
+  char buf[2];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(3, 1);
+  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n", 
+      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+
+  // Write "a" then "b"
+  //printf("DbgPfuDbgRead: write a\n");
+  DBG_PFU(dc, "%s", "a");
+  //printf("DbgPfuDbgRead: a cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead a dst_buf", dc->dst_buf, dc->dst_buf_size);
+  DBG_PFU(dc, "%s", "b");
+  //printf("DbgPfuDbgRead: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead ab dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read verify "a"
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 1);
+  ASSERT_EQ(strcmp("a", buf), 0);
+
+  // Read verify "b"
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 1);
+  ASSERT_EQ(strcmp("b", buf), 0);
+
+  // Read verify ""
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 0);
+  ASSERT_EQ(strcmp("", buf), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPfuOverFillBy1ReadTillEmpty)
+{
+  char buf[2];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(3, 1);
+  printf("DbgPfuOverOverFillBy1ReadTillEmpty: dst_buf size=%zu begi=%zu endi=%zu\n", 
+      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+
+  // Write "a", "b", "c"
+  printf("DbgPfuOverFillBy1ReadTillEmpty: write a, b, c\n");
+  DBG_PFU(dc, "%s", "a");
+  printf("DbgPfuOverFillBy1ReadTillEmpty: a cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy1ReadTillEmpty a dst_buf", dc->dst_buf, dc->dst_buf_size);
+  DBG_PFU(dc, "%s", "b");
+  printf("DbgPfuOverFillBy1ReadTillEmpty: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy1ReadTillEmpty ab dst_buf", dc->dst_buf, dc->dst_buf_size);
+  DBG_PFU(dc, "%s", "c");
+  printf("DbgPfuOverFillBy1ReadTillEmpty: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy1ReadTillEmpty cb dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read verify "b"
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  printf("DbgPfuOverFillBy1ReadTillEmpty: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy1ReadTillEmpty", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 1);
+  ASSERT_EQ(strcmp("b", buf), 0);
+
+  // Read verify "c"
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  printf("DbgPfuOverFillBy1ReadTillEmpty: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuDbgRead", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 1);
+  ASSERT_EQ(strcmp("c", buf), 0);
+
+  // Read verify ""
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  printf("DbgPfuOverFillBy1ReadTillEmpty: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy1ReadTillEmpty", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 0);
+  ASSERT_EQ(strcmp("", buf), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPfuOverFill2ReadTillEmpty)
+{
+  char buf[2];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(3, 1);
+  printf("DbgPfuOverOverFillBy2ReadTillEmpty: dst_buf size=%zu begi=%zu endi=%zu\n", 
+      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+
+  // Write "a", "b", "c", "d"
+  printf("DbgPfuOverFillBy2ReadTillEmpty: write a, b, c\n");
+  DBG_PFU(dc, "%s", "a");
+  printf("DbgPfuOverFillBy2ReadTillEmpty: a cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy2ReadTillEmpty a dst_buf", dc->dst_buf, dc->dst_buf_size);
+  DBG_PFU(dc, "%s", "b");
+  printf("DbgPfuOverFillBy2ReadTillEmpty: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy2ReadTillEmpty ab dst_buf", dc->dst_buf, dc->dst_buf_size);
+  DBG_PFU(dc, "%s", "c");
+  printf("DbgPfuOverFillBy2ReadTillEmpty: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy2ReadTillEmpty cb dst_buf", dc->dst_buf, dc->dst_buf_size);
+  DBG_PFU(dc, "%s", "d");
+  printf("DbgPfuOverFillBy2ReadTillEmpty: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy2ReadTillEmpty cb dst_buf", dc->dst_buf, dc->dst_buf_size);
+
+  // Read verify "c"
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  printf("DbgPfuOverFillBy2ReadTillEmpty: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy2ReadTillEmpty", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 1);
+  ASSERT_EQ(strcmp("c", buf), 0);
+
+  // Read verify "d"
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  printf("DbgPfuOverFillBy2ReadTillEmpty: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuDbgRead", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 1);
+  ASSERT_EQ(strcmp("d", buf), 0);
+
+  // Read verify ""
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  printf("DbgPfuOverFillBy2ReadTillEmpty: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+  dump("DbgPfuOverFillBy2ReadTillEmpty", buf, sizeof(buf));
+  ASSERT_EQ(cnt, 0);
+  ASSERT_EQ(strcmp("", buf), 0);
+
+  dbg_ctx_destroy(dc);
+}
+
+//TEST_F(DbgTest, DbgPfuWritesThenReadWrites)
+//{
+//  char buf[2];
+//  size_t cnt;
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(3, 1);
+//  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n", 
+//      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+//
+//  // Write "a" then "b"
+//  //printf("DbgPfuDbgRead: write a\n");
+//  DBG_PFU(dc, "%s", "a");
+//  printf("DbgPfuDbgRead: a cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+//      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+//  dump("DbgPfuDbgRead a dst_buf", dc->dst_buf, dc->dst_buf_size);
+//  DBG_PFU(dc, "%s", "b");
+//  printf("DbgPfuDbgRead: ab cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+//      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+//  dump("DbgPfuDbgRead ab dst_buf", dc->dst_buf, dc->dst_buf_size);
+//
+//  // Read verify "a" write "c"
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  //DBG_PFU(dc, "%s", "c");
+//  printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+//      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+//  dump("DbgPfuDbgRead", buf, sizeof(buf));
+//  ASSERT_EQ(cnt, 1);
+//  ASSERT_EQ(strcmp("a", buf), 0);
+//
+//  // Read verify "b" write "d"
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  DBG_PFU(dc, "%s", "d");
+//  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n", 
+//  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+//  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+//  ASSERT_EQ(cnt, 1);
+//  ASSERT_EQ(strcmp("b", buf), 0);
+//
+//  // Read vierfy "c" and "d"
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  ASSERT_EQ(cnt, 1);
+//  ASSERT_EQ(strcmp("c", buf), 0);
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  ASSERT_EQ(cnt, 1);
+//  ASSERT_EQ(strcmp("d", buf), 0);
+//
+//  // Another two reads should both be empty
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  ASSERT_EQ(cnt, 0);
+//  ASSERT_EQ(strcmp("", buf), 0);
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  ASSERT_EQ(cnt, 0);
+//  ASSERT_EQ(strcmp("", buf), 0);
+//
+//  dbg_ctx_destroy(dc);
+//}
+
+//TEST_F(DbgTest, DbgPfuDbgRead)
+//{
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+//
+//  DBG_PFU(dc, "%s", "a");
+//  DBG_PFU(dc, "%s", "b");
+//  char buf[2];
+//  dbg_read(dc, buf, sizeof(buf));
+//  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n", 
+//      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
+//  dump("DbgPfuDbgRead", buf, sizeof(buf));
+//  EXPECT_EQ(strcmp("a", buf), 0);
+//
+//  dbg_ctx_destroy(dc);
+//}
+
+//TEST_F(DbgTest, DbgPfuWrite1byteTo1ByteBuf)
+//{
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
+//
+//  DBG_PFU(dc, "%s", "a");
+//  EXPECT_EQ(strcmp("", dbg_get_buf(dc)), 0);
+//
+//  dbg_ctx_destroy(dc);
+//}
+//
+//TEST_F(DbgTest, DbgPfuWrite2byteTo1ByteBuf)
+//{
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
+//
+//  DBG_PFU(dc, "%s", "ab");
+//  EXPECT_EQ(strcmp("", dbg_get_buf(dc)), 0);
+//
+//  dbg_ctx_destroy(dc);
+//}
+//
+//TEST_F(DbgTest, DbgPfuWrite2byteTo2ByteBuf)
+//{
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+//
+//  DBG_PFU(dc, "%s", "ab");
+//  EXPECT_EQ(strcmp("a", dbg_get_buf(dc)), 0);
+//
+//  dbg_ctx_destroy(dc);
+//}
+//
+//TEST_F(DbgTest, DbgPfuTwoSecondTruncated)
+//{
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(3, 1);
+//
+//  memset(dbg_get_buf(dc), 0xff, 4);
+//  DBG_PFU(dc, "%s", "a");
+//  dump("DbgPfuTwoSecondTruncated a", dbg_get_buf(dc), 4);
+//  printf("DbgPfuTwoSecondTruncated a: %s\n", dbg_get_buf(dc));
+//  EXPECT_EQ(strcmp("a", dbg_get_buf(dc)), 0);
+//  DBG_PFU(dc, "%s", "bc");
+//  dump("DbgPfuTwoSecondTruncated bc", dbg_get_buf(dc), 4);
+//  printf("DbgPfuTwoSecondTruncated bc: %s\n", dbg_get_buf(dc));
+//  EXPECT_EQ(strcmp("ab", dbg_get_buf(dc)), 0);
+//
+//  dbg_ctx_destroy(dc);
+//}
 
 TEST_F(DbgTest, DbgPsu)
 {

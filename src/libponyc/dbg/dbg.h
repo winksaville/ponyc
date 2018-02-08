@@ -16,10 +16,18 @@ PONY_EXTERN_C_BEGIN
 #define _DBG_BITS_ARRAY_IDX(bit_idx) ((bit_idx) / 32)
 #define _DBG_BIT_MASK(bit_idx) ((uint32_t)1 << (uint32_t)((bit_idx) & 0x1F))
 
+#if !defined(DBG_TMP_BUF_SIZE) || (DBG_TMP_BUF_SIZE <= 0)
+#define DBG_TMP_BUF_SIZE 0x200
+#endif
+
 typedef struct {
   FILE* dst_file;
   char* dst_buf;
   size_t dst_buf_size;
+  size_t dst_buf_begi;
+  size_t dst_buf_endi;
+  char tmp_buf[DBG_TMP_BUF_SIZE];
+  size_t tmp_buf_size;
   uint32_t* bits;
 } dbg_ctx_t;
 
@@ -38,6 +46,35 @@ dbg_ctx_t* dbg_ctx_create_with_dst_file(FILE* dst, uint32_t number_of_bits);
  * Destroy a previously created dbg_ctx
  */
 void dbg_ctx_destroy(dbg_ctx_t* dbg_ctx);
+
+/**
+ * Print a formated string to the current dbg_ctx destination
+ */
+int dbg_printf(dbg_ctx_t* dbg_ctx, const char* format, ...);
+
+/**
+ * Print a formated string to the current dbg_ctx destination with
+ * the args being a va_list.
+ */
+int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist);
+
+/**
+ * used by dbg_get_buf to linearize the buffer which
+ * guarantees the buffer does not wrap, so begi < endi.
+ */
+//void dbg_linearize(dbg_ctx_t* ctx);
+
+/**
+ * Read data to the dst buf. dst is the destination and
+ * size is the maximum size to read.
+ *
+ * return number of bytes read not including the null
+ * terminator written at the end. If size is 0 nothing
+ * is written to dst and the return value is the number
+ * of bytes that would be needed to hold the buffer not
+ * counting the null terminator.
+ */
+size_t dbg_read(dbg_ctx_t* ctx, char* dst, size_t size);
 
 /**
  * Set bit at bit_idx to bit_value
@@ -63,22 +100,18 @@ static inline bool dbg_gb(dbg_ctx_t* ctx, uint32_t bit_idx)
   return (ctx->bits[bits_array_idx] & _DBG_BIT_MASK(bit_idx)) != 0;
 }
 
-/**
- * Create a dbg context and initialize. In particular the
- * bits array will be zeroed.
- */
-dbg_ctx_t* dbg_create(FILE* file, uint32_t number_of_bits);
-
-/**
- * Free memory, the FILE is NOT closed.
- */
-void dbg_destroy(dbg_ctx_t* dbg_ctx);
+static inline char* dbg_get_buf(dbg_ctx_t* ctx)
+{
+  //if(ctx->dst_buf_endi < ctx->dst_buf_begi)
+  //  dbg_linearize(ctx);
+  return &ctx->dst_buf[ctx->dst_buf_begi];
+}
 
 /**
  * Unconditionally print, ignores ctx->bits
  */
 #define DBG_PFU(ctx, format, ...) \
-  _DBG_DO(fprintf(ctx->dst_file, format, __VA_ARGS__))
+  _DBG_DO(dbg_printf(ctx, format, __VA_ARGS__))
 
 /**
  * Unconditionally print a string, ignores ctx->bits

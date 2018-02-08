@@ -20,6 +20,14 @@ PONY_EXTERN_C_BEGIN
 #define DBG_TMP_BUF_SIZE 0x200
 #endif
 
+/**
+ * Debug context structure.
+ *
+ * I've decided that the more important information of any single
+ * "print/write" operation to the is the beginning information. As
+ * such when writing to dst_buf only the first N bytes will be
+ * preserved. Where N is the min(dst_buf_size, tmp_buf_size).
+ */
 typedef struct {
   FILE* dst_file;
   char* dst_buf;
@@ -28,6 +36,7 @@ typedef struct {
   size_t dst_buf_endi;
   char tmp_buf[DBG_TMP_BUF_SIZE];
   size_t tmp_buf_size;
+  size_t max_size;
   uint32_t* bits;
 } dbg_ctx_t;
 

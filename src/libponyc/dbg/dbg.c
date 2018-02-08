@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 static dbg_ctx_t* calloc_ctx_and_bits(uint32_t number_of_bits)
 {
@@ -33,7 +34,8 @@ dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_buf_size,
   dbg_ctx_t* dc = calloc_ctx_and_bits(number_of_bits);
   dc->dst_buf_size = dst_buf_size;
   dc->dst_buf = (char*)calloc(1, dst_buf_size);
-
+  dc->max_size = dc->dst_buf_size > dc->tmp_buf_size ?
+                      dc->tmp_buf_size : dc->dst_buf_size;
   pony_assert(dc->dst_file == NULL);
   pony_assert(dc->dst_buf_size > 0);
   pony_assert(dc->dst_buf_begi == 0);
@@ -57,6 +59,20 @@ int dbg_printf(dbg_ctx_t* dbg_ctx, const char* format, ...)
   return cnt;
 }
 
+static void dump(const char* leader, char *p, size_t l)
+{
+  printf("%s", leader);
+  for(size_t i = 0; i < l; i++)
+  {
+    unsigned char c = *p++;
+    if(isalpha(c))
+      printf("%c", c);
+    else
+      printf("<%02x>", c);
+  }
+  printf("\n");
+}
+
 int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist)
 {
   int cnt;
@@ -65,16 +81,20 @@ int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist)
   char *restrict src;
   if(dbg_ctx->dst_buf != NULL)
   {
-    printf("dbg_vprintf:+ size=%zu begi=%zu endi=%zu\n",
+    printf("dbg_vprintf:+ dst_buf size=%zu begi=%zu endi=%zu\n",
         dbg_ctx->dst_buf_size, dbg_ctx->dst_buf_begi, dbg_ctx->dst_buf_endi);
-    dst = &dbg_ctx->dst_buf[dbg_ctx->dst_buf_endi];
+
+    // Create a copy of the list as we may have to use it twice
     va_list tmp_vlist;
     va_copy(tmp_vlist, vlist);
+
+    dst = &dbg_ctx->dst_buf[dbg_ctx->dst_buf_endi];
     if(dbg_ctx->dst_buf_endi >= dbg_ctx->dst_buf_begi)
     {
-      size = dbg_ctx->dst_buf_size - dbg_ctx->dst_buf_endi;
+      size = dbg_ctx->max_size - dbg_ctx->dst_buf_endi;
       cnt = vsnprintf(dst, size, format, vlist);
       printf("dbg_vprintf: 1 size=%zu cnt=%d\n", size, cnt);
+      dump("dbg_vprintf:11 ", dbg_ctx->dst_buf, dbg_ctx->dst_buf_size);
       if(cnt >= 0)
       {
         size_t written_excluding_null =
@@ -83,28 +103,34 @@ int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist)
         printf("dbg_vprintf: 2 not_written=%zu written_excluding_null=%zu begi=%zu endi=%zu\n",
             not_written, written_excluding_null, dbg_ctx->dst_buf_begi,
             dbg_ctx->dst_buf_endi);
-        if(not_written > 0)
-        {
+        if((written_excluding_null < (dbg_ctx->max_size - 1))
+            && (not_written > 0))
+        { // We have not written all we can write AND we have more to write
           printf("dbg_vprintf: 3 not_written=%zu > 0\n", not_written);
           if(written_excluding_null < dbg_ctx->tmp_buf_size)
           {
             // Write to tmp_buf then move the non-written data to dst_buf
-            size = dbg_ctx->tmp_buf_size;
-            cnt = vsnprintf(dbg_ctx->tmp_buf, size, format, tmp_vlist);
-            printf("dbg_vprintf: 4 tmp_buf=%s size=%zu cnt=%d\n", dbg_ctx->tmp_buf, size, cnt);
-            printf("dbg_vprintf:   dst_bufi size=%zu begi=%zu endi=%zu\n",
+            dst = dbg_ctx->tmp_buf;
+            // min(tmp_buf_size, dst_buf_size)
+            size = dbg_ctx->tmp_buf_size > dbg_ctx->dst_buf_size ?
+              dbg_ctx->dst_buf_size : dbg_ctx->tmp_buf_size;
+            cnt = vsnprintf(dst, size, format, tmp_vlist);
+            printf("dbg_vprintf: 4 tmp_buf=%s size=%zu cnt=%d\n", dst, size, cnt);
+            printf("dbg_vprintf:   dst_buf size=%zu begi=%zu endi=%zu\n",
                 dbg_ctx->dst_buf_size, dbg_ctx->dst_buf_begi, dbg_ctx->dst_buf_endi);
+            dump("dbg_vprintf:41 ", dbg_ctx->dst_buf, dbg_ctx->dst_buf_size);
             if(cnt >= 0)
             {
-              dst = &dbg_ctx->dst_buf[dbg_ctx->dst_buf_endi];
+              dst = &dbg_ctx->dst_buf[dbg_ctx->dst_buf_endi + written_excluding_null];
               src = &dbg_ctx->tmp_buf[written_excluding_null];
-              size = dbg_ctx->dst_buf_size - dbg_ctx->dst_buf_endi;
+              size = dbg_ctx->dst_buf_size - (dbg_ctx->dst_buf_endi + written_excluding_null);
               printf("dbg_vprintf: 5 before 1 memcpy size=%zu\n", size);
               if(size > not_written)
                 size = not_written;
               printf("dbg_vprintf: 6 before 2 memcpy size=%zu\n", size);
               memcpy(dst, src, size);
-              dbg_ctx->dst_buf_endi += size;
+              dump("dbg_vprintf:61 ", dbg_ctx->dst_buf, dbg_ctx->dst_buf_size);
+              dbg_ctx->dst_buf_endi += written_excluding_null + size;
               if(dbg_ctx->dst_buf_endi >= dbg_ctx->dst_buf_size)
               {
                 printf("dbg_vprintf: 7 dst_buf_endi wrapping\n");
@@ -130,13 +156,13 @@ int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist)
             printf("dbg_vprintf:10 tmp_buf is too small, ignoring\n");
           }
         } else {
+          // We're done on the first write!
           dbg_ctx->dst_buf_endi += written_excluding_null;
         }
       } else {
         // some error, just ignore as there isn't anything we can do
         printf("dbg_vprintf:11 dst_buf err=%d strerror=%s\n", cnt, strerror(cnt));
       }
-      va_end(tmp_vlist);
     } else {
       printf("dbg_vprintf:12 endi is behind begi\n");
       // Try to write and check for writing past begi
@@ -201,13 +227,16 @@ int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist)
         // some error, just ignore as there isn't anything we can do
         printf("dbg_vprintf:11 dst_buf err=%d strerror=%s\n", cnt, strerror(cnt));
       }
-      va_end(tmp_vlist);
     }
-    printf("dbg_vprintf:- size=%zu begi=%zu endi=%zu\n",
-        dbg_ctx->dst_buf_size, dbg_ctx->dst_buf_begi, dbg_ctx->dst_buf_endi);
+    // Release the copy
+    va_end(tmp_vlist);
+    printf("dbg_vprintf:  dst_buf cnt=%d size=%zu begi=%zu endi=%zu\n",
+        cnt, dbg_ctx->dst_buf_size, dbg_ctx->dst_buf_begi, dbg_ctx->dst_buf_endi);
+    dump("dbg_vprintf:- ", dbg_ctx->dst_buf, dbg_ctx->dst_buf_size);
   } else {
+    printf("dbg_vprintf:+ dst_file\n");
     cnt = vfprintf(dbg_ctx->dst_file, format, vlist);
-    printf("dbg_vprintf:- cnt=%d\n", cnt);
+    printf("dbg_vprintf:- dst_file cnt=%d\n", cnt);
   }
   return cnt;
 }
@@ -270,7 +299,7 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t size)
         dst += cnt - chunk_size;
       }
     }
-    dst[cnt] = 0;
+    *dst = 0;
     dc->dst_buf_begi += cnt;
     if(dc->dst_buf_begi >= dc->dst_buf_size)
       dc->dst_buf_begi -= dc->dst_buf_size;

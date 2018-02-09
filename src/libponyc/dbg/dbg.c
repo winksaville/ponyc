@@ -184,24 +184,26 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t size)
     if(total > 0)
     {
       size_t idx = dc->dst_buf_begi;
-      size_t cpy_size;
       printf("dbg_read:  total=%zu idx=%zu\n", total, idx);
       if(idx >= dc->dst_buf_endi)
       {
         // Might do one or two memcpy
-        cpy_size = dc->dst_buf_size - idx;
-        printf("dbg_read:  one or two memcpy cpy_size=%zu\n", cpy_size);
+        size = dc->dst_buf_size - idx;
+        printf("dbg_read:  one or two memcpy size=%zu\n", size);
       } else {
         // One memcpy
-        cpy_size = dc->dst_buf_endi - idx;
-        printf("dbg_read:  one memcpy cpy_size=%zu\n", cpy_size);
+        size = dc->dst_buf_endi - idx;
+        printf("dbg_read:  one memcpy size=%zu\n", size);
       }
-      printf("dbg_read:  total=%zu idx=%zu cpy_size=%zu\n", total, idx, cpy_size);
+      // Adjust size incase its to large
+      if(size > total)
+        size = total;
+      printf("dbg_read:  total=%zu idx=%zu size=%zu\n", total, idx, size);
 
       // Do first copy
       size_t cnt = 0;
       src = &dc->dst_buf[idx];
-      printf("dbg_read  1st memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
+      printf("dbg_read:  1st memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
       memcpy(dst, src, size);
 
       // Record what we copied
@@ -211,21 +213,22 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t size)
       // Check if we're done
       if(cnt < total)
       {
-        pony_assert(dc->dst_buf_endi <= dc->dst_buf_begi);
-
         // Not done, wrap to the begining of the buffer
         // and size = endi
+        pony_assert(dc->dst_buf_endi <= dc->dst_buf_begi);
         idx = 0;
         size = dc->dst_buf_endi;
 
         src = &dc->dst_buf[idx];
-        printf("dbg_read  2nd memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
+        printf("dbg_read:  2nd memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
         memcpy(dst, src, size);
+        dst += size;
+        cnt += size;
       } else {
         size = 0;
       }
       // Validate we've finished
-      pony_assert((cnt + size) == total);
+      pony_assert(cnt == total);
 
       // Adjust cnt and begi
       dc->dst_buf_cnt -= total;

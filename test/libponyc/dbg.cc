@@ -64,6 +64,48 @@ TEST_F(DbgTest, DbgBitMask)
   EXPECT_EQ(_DBG_BIT_MASK(95), 0x80000000);
 }
 
+TEST_F(DbgTest, DbgBnoi)
+{
+  EXPECT_EQ(dbg_bnoi(first,0), 0);
+  EXPECT_EQ(dbg_bnoi(first,1), 1);
+  EXPECT_EQ(dbg_bnoi(second,0), 30);
+  EXPECT_EQ(dbg_bnoi(second,1), 31);
+  EXPECT_EQ(dbg_bnoi(second,2), 32);
+  EXPECT_EQ(dbg_bnoi(another,0), 33);
+  EXPECT_EQ(dbg_bnoi(another,1), 34);
+  EXPECT_EQ(bits_size, 30 + 3 + 2);
+}
+
+TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
+{
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, bits_size);
+
+  // Get bit index of second[0] and second[1] they should be adjacent
+  uint32_t bi0 = dbg_bnoi(second, 0);
+  uint32_t bi1 = dbg_bnoi(second, 1);
+  EXPECT_EQ(bi0 + 1, bi1);
+
+  // Initially they should be zero
+  bool o0 = dbg_gb(dc, bi0);
+  bool o1 = dbg_gb(dc, bi1);
+  EXPECT_FALSE(o0);
+  EXPECT_FALSE(o1);
+
+  // Write new values and verify they changed
+  dbg_sb(dc, bi0, !o0);
+  dbg_sb(dc, bi1, !o1);
+  EXPECT_EQ(dbg_gb(dc, bi0), !o0);
+  EXPECT_EQ(dbg_gb(dc, bi1), !o1);
+
+  // Restore original values
+  dbg_sb(dc, bi0, o0);
+  dbg_sb(dc, bi1, o1);
+  EXPECT_EQ(dbg_gb(dc, bi0), o0);
+  EXPECT_EQ(dbg_gb(dc, bi1), o1);
+
+  dbg_ctx_destroy(dc);
+}
+
 TEST_F(DbgTest, DbgCreateDestroy)
 {
   // Verify data structure
@@ -710,50 +752,150 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgBnoi)
+TEST_F(DbgTest, DbgPfnu)
 {
-  EXPECT_EQ(dbg_bnoi(first,0), 0);
-  EXPECT_EQ(dbg_bnoi(first,1), 1);
-  EXPECT_EQ(dbg_bnoi(second,0), 30);
-  EXPECT_EQ(dbg_bnoi(second,1), 31);
-  EXPECT_EQ(dbg_bnoi(second,2), 32);
-  EXPECT_EQ(dbg_bnoi(another,0), 33);
-  EXPECT_EQ(dbg_bnoi(another,1), 34);
-  EXPECT_EQ(bits_size, 30 + 3 + 2);
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
+
+  // Write
+  DBG_PFNU(dc, "Yo %s\n", "Dude");
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 19);
+  EXPECT_STREQ("TestBody:  Yo Dude\n", buf);
+
+  dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
+TEST_F(DbgTest, DbgPsnu)
 {
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, bits_size);
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
 
-  // Get bit index of second[0] and second[1] they should be adjacent
-  uint32_t bi0 = dbg_bnoi(second, 0);
-  uint32_t bi1 = dbg_bnoi(second, 1);
-  EXPECT_EQ(bi0 + 1, bi1);
+  // Write
+  DBG_PSNU(dc, "hi\n");
 
-  // Initially they should be zero
-  bool o0 = dbg_gb(dc, bi0);
-  bool o1 = dbg_gb(dc, bi1);
-  EXPECT_FALSE(o0);
-  EXPECT_FALSE(o1);
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 14);
+  EXPECT_STREQ("TestBody:  hi\n", buf);
 
-  // Write new values and verify they changed
-  dbg_sb(dc, bi0, !o0);
-  dbg_sb(dc, bi1, !o1);
-  EXPECT_EQ(dbg_gb(dc, bi0), !o0);
-  EXPECT_EQ(dbg_gb(dc, bi1), !o1);
+  dbg_ctx_destroy(dc);
+}
 
-  // Restore original values
-  dbg_sb(dc, bi0, o0);
-  dbg_sb(dc, bi1, o1);
-  EXPECT_EQ(dbg_gb(dc, bi0), o0);
-  EXPECT_EQ(dbg_gb(dc, bi1), o1);
+TEST_F(DbgTest, DbgPf)
+{
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
+
+  // Set bit 0 and Write
+  dbg_sb(dc, 0, 1);
+  DBG_PF(dc, 0, "hi %s", "there");
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 8);
+  EXPECT_STREQ("hi there", buf);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPs)
+{
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
+
+  // Set bit 0 and Write
+  dbg_sb(dc, 0, 1);
+  DBG_PS(dc, 0, "hi there");
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 8);
+  EXPECT_STREQ("hi there", buf);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPfn)
+{
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
+
+  // Set bit 0 and Write
+  dbg_sb(dc, 0, 1);
+  DBG_PFN(dc, 0, "hi %s", "there");
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 19);
+  EXPECT_STREQ("TestBody:  hi there", buf);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPsn)
+{
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
+
+  // Set bit 0 and Write
+  dbg_sb(dc, 0, 1);
+  DBG_PSN(dc, 0, "hi there");
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 19);
+  EXPECT_STREQ("TestBody:  hi there", buf);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgEX)
+{
+  char buf[100];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(100, 100, 1);
+
+  // Set bit 0 and Write
+  dbg_sb(dc, 0, 1);
+
+  DBG_E(dc, 0);
+  DBG_X(dc, 0);
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 22);
+  EXPECT_STREQ("TestBody:+\nTestBody:-\n", buf);
+
+  DBG_PFE(dc, 0, "Entered %d\n", 1);
+  DBG_PFX(dc, 0, "Exited  %d\n", 2);
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 42);
+  EXPECT_STREQ("TestBody:+ Entered 1\nTestBody:- Exited  2\n", buf);
+
+  DBG_PSE(dc, 0, "Entered 1\n");
+  DBG_PSX(dc, 0, "Exited  2\n");
+
+  // Check it
+  cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+  EXPECT_EQ(cnt, 42);
+  EXPECT_STREQ("TestBody:+ Entered 1\nTestBody:- Exited  2\n", buf);
 
   dbg_ctx_destroy(dc);
 }
 
 #ifndef _MSC_VER
-TEST_F(DbgTest, DbgPsnuEasy)
+TEST_F(DbgTest, DbgPsnuViaDstFileUsingFmemopen)
 {
   char buffer[100];
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
@@ -763,24 +905,23 @@ TEST_F(DbgTest, DbgPsnuEasy)
   DBG_PSNU(dc, "hi\n");
 
   fclose(memfile);
-  ASSERT_STREQ("TestBody:  hi\n", buffer);
+  EXPECT_STREQ("TestBody:  hi\n", buffer);
 
   dbg_ctx_destroy(dc);
 }
 #endif
 
 #ifndef _MSC_VER
-TEST_F(DbgTest, DbgPfnuEasy)
+TEST_F(DbgTest, DbgPfnuViaDstFileUsingFmemopen)
 {
   char buffer[100];
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
-  ASSERT_TRUE(dc != NULL);
 
   DBG_PFNU(dc, "Yo %s\n", "Dude");
 
   fclose(memfile);
-  ASSERT_STREQ("TestBody:  Yo Dude\n", buffer);
+  EXPECT_STREQ("TestBody:  Yo Dude\n", buffer);
 
   dbg_ctx_destroy(dc);
 }

@@ -53,27 +53,21 @@ dbg_ctx_t* dbg_ctx_create_with_dst_file(FILE* dst, uint32_t number_of_bits);
 /**
  * Destroy a previously created dbg_ctx
  */
-void dbg_ctx_destroy(dbg_ctx_t* dbg_ctx);
+void dbg_ctx_destroy(dbg_ctx_t* dc);
 
 /**
  * Print a formated string to the current dbg_ctx destination
  */
-size_t dbg_printf(dbg_ctx_t* dbg_ctx, const char* format, ...);
+size_t dbg_printf(dbg_ctx_t* dc, const char* format, ...);
 
 /**
  * Print a formated string to the current dbg_ctx destination with
  * the args being a va_list.
  */
-size_t dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist);
+size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist);
 
 /**
- * used by dbg_get_buf to linearize the buffer which
- * guarantees the buffer does not wrap, so begi < endi.
- */
-//void dbg_linearize(dbg_ctx_t* ctx);
-
-/**
- * Read data from the ctx to dst. dst_size is size of
+ * Read data from the dc to dst. dst_size is size of
  * the dst and must be > size to accommodate the null
  * terminator written at the end. Size is the maximum size
  * to read.
@@ -81,162 +75,155 @@ size_t dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist);
  * @returns number of bytes read not including the null
  * terminator written at the end.
  */
-size_t dbg_read(dbg_ctx_t* ctx, char* dst, size_t dst_size, size_t size);
+size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t dst_size, size_t size);
 
 /**
  * Set bit at bit_idx to bit_value
  */
-static inline void dbg_sb(dbg_ctx_t* ctx, uint32_t bit_idx, bool bit_value)
+static inline void dbg_sb(dbg_ctx_t* dc, uint32_t bit_idx, bool bit_value)
 {
   uint32_t bits_array_idx = _DBG_BITS_ARRAY_IDX(bit_idx);
   uint32_t bit_mask = _DBG_BIT_MASK(bit_idx);
   if(bit_value)
   {
-    ctx->bits[bits_array_idx] |= bit_mask;
+    dc->bits[bits_array_idx] |= bit_mask;
   } else {
-    ctx->bits[bits_array_idx] &= ~bit_mask;
+    dc->bits[bits_array_idx] &= ~bit_mask;
   }
 }
 
 /**
  * Get bit at bit_idx
  */
-static inline bool dbg_gb(dbg_ctx_t* ctx, uint32_t bit_idx)
+static inline bool dbg_gb(dbg_ctx_t* dc, uint32_t bit_idx)
 {
   uint32_t bits_array_idx = _DBG_BITS_ARRAY_IDX(bit_idx);
-  return (ctx->bits[bits_array_idx] & _DBG_BIT_MASK(bit_idx)) != 0;
-}
-
-static inline char* dbg_get_buf(dbg_ctx_t* ctx)
-{
-  //if(ctx->dst_buf_endi < ctx->dst_buf_begi)
-  //  dbg_linearize(ctx);
-  return &ctx->dst_buf[ctx->dst_buf_begi];
+  return (dc->bits[bits_array_idx] & _DBG_BIT_MASK(bit_idx)) != 0;
 }
 
 /**
- * Unconditionally print, ignores ctx->bits
+ * Unconditionally print, ignores dc->bits
  */
-#define DBG_PFU(ctx, format, ...) \
-  _DBG_DO(dbg_printf(ctx, format, __VA_ARGS__))
+#define DBG_PFU(dc, format, ...) \
+  _DBG_DO(dbg_printf(dc, format, __VA_ARGS__))
 
 /**
- * Unconditionally print a string, ignores ctx->bits
+ * Unconditionally print a string, ignores dc->bits
  * Needed for use on Windows
  */
-#define DBG_PSU(ctx, str) \
-  _DBG_DO(fprintf(ctx->dst_file, str))
+#define DBG_PSU(dc, str) \
+  _DBG_DO(dbg_printf(dc, str))
 
 /**
- * Unconditionally print with function name, ignores ctx->bits
+ * Unconditionally print with function name, ignores dc->bits
  */
-#define DBG_PFNU(ctx, format, ...) \
-  _DBG_DO(fprintf(ctx->dst_file, "%s:  " format, __FUNCTION__, __VA_ARGS__))
+#define DBG_PFNU(dc, format, ...) \
+  _DBG_DO(dbg_printf(dc, "%s:  " format, __FUNCTION__, __VA_ARGS__))
 
 /**
- * Unconditionally print string with function name, ignores ctx->bits
+ * Unconditionally print string with function name, ignores dc->bits
  */
-#define DBG_PSNU(ctx, str) \
-  _DBG_DO(fprintf(ctx->dst_file, "%s:  " str, __FUNCTION__))
+#define DBG_PSNU(dc, str) \
+  _DBG_DO(dbg_printf(dc, "%s:  " str, __FUNCTION__))
 
 /**
- * Flush ctx file
+ * Flush dc file
  */
-#define DBG_FLUSH(ctx) _DBG_DO(fflush(ctx->dst_file))
+#define DBG_FLUSH(dc) _DBG_DO(fflush(dc->dst_file))
 
 /**
  * Printf if bit_idx is set
  */
-#define DBG_PF(ctx, bit_idx, format, ...) \
+#define DBG_PF(dc, bit_idx, format, ...) \
   _DBG_DO( \
     if(DBG_ENABLED) \
-      if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->dst_file, format, __VA_ARGS__))
+      if(dbg_gb(dc, bit_idx)) \
+        dbg_printf(dc, format, __VA_ARGS__))
 
 /**
  * Print string if bit_idx is set
  */
-#define DBG_PS(ctx, bit_idx, str) \
+#define DBG_PS(dc, bit_idx, str) \
   _DBG_DO( \
     if(DBG_ENABLED) \
-      if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->dst_file, str))
+      if(dbg_gb(dc, bit_idx)) \
+        dbg_printf(dc, str))
 
 /**
  * Printf with leading "<funcName>:  " if bit_idx is set
  */
-#define DBG_PFN(ctx, bit_idx, format, ...) \
+#define DBG_PFN(dc, bit_idx, format, ...) \
   _DBG_DO( \
     if(DBG_ENABLED) \
-      if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->dst_file, "%s:  " format, __FUNCTION__, __VA_ARGS__))
+      if(dbg_gb(dc, bit_idx)) \
+        dbg_printf(dc, "%s:  " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Print string with leading "<funcName>:  " if bit_idx is set
  */
-#define DBG_PSN(ctx, bit_idx, str) \
+#define DBG_PSN(dc, bit_idx, str) \
   _DBG_DO( \
     if(DBG_ENABLED) \
-      if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->dst_file, "%s:  " str, __FUNCTION__))
+      if(dbg_gb(dc, bit_idx)) \
+        dbg_printf(dc, "%s:  " str, __FUNCTION__))
 
 /**
  * "Enter routine" prints "<funcName>:+\n" if bit_idx is set
  */
-#define DBG_E(ctx, bit_idx) \
+#define DBG_E(dc, bit_idx) \
   _DBG_DO( \
     if(DBG_ENABLED) \
-      if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->dst_file, "%s:+\n", __FUNCTION__))
+      if(dbg_gb(dc, bit_idx)) \
+        dbg_printf(dc, "%s:+\n", __FUNCTION__))
 
 /**
  * Enter routine print leading functionName:+ and new line
  * if bit_idx is set
  */
-#define DBG_PFE(ctx, bit_idx, format, ...) \
+#define DBG_PFE(dc, bit_idx, format, ...) \
   _DBG_DO( \
      if(DBG_ENABLED) \
-       if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->dst_file, "%s:+ " format, __FUNCTION__, __VA_ARGS__))
+       if(dbg_gb(dc, bit_idx)) \
+         dbg_printf(dc, "%s:+ " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Enter routine print string with leading functionName:+ and new line
  * if bit_idx is set
  */
-#define DBG_PSE(ctx, bit_idx, str) \
+#define DBG_PSE(dc, bit_idx, str) \
   _DBG_DO( \
      if(DBG_ENABLED) \
-       if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->dst_file, "%s:+ " str, __FUNCTION__))
+       if(dbg_gb(dc, bit_idx)) \
+         dbg_printf(dc, "%s:+ " str, __FUNCTION__))
 
 /**
  * "Exit routine" prints "<funcName>:-\n" if bit_idx is set
  */
-#define DBG_X(ctx, bit_idx) \
+#define DBG_X(dc, bit_idx) \
   _DBG_DO( \
     if(DBG_ENABLED) \
-      if(dbg_gb(ctx, bit_idx)) \
-        fprintf(ctx->dst_file, "%s:-\n", __FUNCTION__))
+      if(dbg_gb(dc, bit_idx)) \
+        dbg_printf(dc, "%s:-\n", __FUNCTION__))
 
 /**
  * Exit routine print leading functionName:+ and new line
  * if bit_idx is set
  */
-#define DBG_PFX(ctx, bit_idx, format, ...) \
+#define DBG_PFX(dc, bit_idx, format, ...) \
   _DBG_DO( \
      if(DBG_ENABLED) \
-       if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->dst_file, "%s:- " format, __FUNCTION__, __VA_ARGS__))
+       if(dbg_gb(dc, bit_idx)) \
+         dbg_printf(dc, "%s:- " format, __FUNCTION__, __VA_ARGS__))
 
 /**
  * Exit routine print string with leading functionName:+ and new line
  * if bit_idx is set
  */
-#define DBG_PSX(ctx, bit_idx, str) \
+#define DBG_PSX(dc, bit_idx, str) \
   _DBG_DO( \
      if(DBG_ENABLED) \
-       if(dbg_gb(ctx, bit_idx)) \
-         fprintf(ctx->dst_file, "%s:- " str, __FUNCTION__))
+       if(dbg_gb(dc, bit_idx)) \
+         dbg_printf(dc, "%s:- " str, __FUNCTION__))
 
 PONY_EXTERN_C_END
 

@@ -146,7 +146,6 @@ size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
 
 size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t buf_size, size_t size)
 {
-  //MAYBE_UNUSED(buf_size);
   size_t total;
   char* src;
 

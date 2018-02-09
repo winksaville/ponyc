@@ -29,40 +29,6 @@ TEST_F(DbgTest, DbgDoEmpty)
   _DBG_DO();
 }
 
-#ifndef _MSC_VER
-TEST_F(DbgTest, DbgPsnuEasy)
-{
-  char buffer[100];
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
-  ASSERT_TRUE(dc != NULL);
-
-  DBG_PSNU(dc, "hi\n");
-
-  fclose(memfile);
-  ASSERT_STREQ("TestBody:  hi\n", buffer);
-
-  dbg_ctx_destroy(dc);
-}
-#endif
-
-#ifndef _MSC_VER
-TEST_F(DbgTest, DbgPfnuEasy)
-{
-  char buffer[100];
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
-  ASSERT_TRUE(dc != NULL);
-
-  DBG_PFNU(dc, "Yo %s\n", "Dude");
-
-  fclose(memfile);
-  ASSERT_STREQ("TestBody:  Yo Dude\n", buffer);
-
-  dbg_ctx_destroy(dc);
-}
-#endif
-
 TEST_F(DbgTest, DbgDoSingleStatement)
 {
   char buffer[10];
@@ -228,14 +194,14 @@ TEST_F(DbgTest, WalkingTwoBits)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgPfuOneByteBufWrite)
+TEST_F(DbgTest, DbgPsuOneByteBufWrite)
 {
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 0x100, 1);
 
   // Write "a"
-  DBG_PFU(dc, "%s", "a");
+  DBG_PSU(dc, "a");
 
   // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf), 1);
@@ -250,15 +216,15 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgPfuOneByteBufWriteWrite)
+TEST_F(DbgTest, DbgPsuOneByteBufWriteWrite)
 {
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 0x100, 1);
 
   // Write "a", "b"
-  DBG_PFU(dc, "%s", "a");
-  DBG_PFU(dc, "%s", "b");
+  DBG_PSU(dc, "a");
+  DBG_PSU(dc, "b");
 
   // Read and verify "b" was written
   cnt = dbg_read(dc, buf, sizeof(buf), 1);
@@ -273,16 +239,16 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteWrite)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgPfuOneByteBufWriteWriteWrite)
+TEST_F(DbgTest, DbgPsuOneByteBufWriteWriteWrite)
 {
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 0x100, 1);
 
   // Write "a", "b", "c"
-  DBG_PFU(dc, "%s", "a");
-  DBG_PFU(dc, "%s", "b");
-  DBG_PFU(dc, "%s", "c");
+  DBG_PSU(dc, "a");
+  DBG_PSU(dc, "b");
+  DBG_PSU(dc, "c");
 
   // Read and verify "b" was written
   cnt = dbg_read(dc, buf, sizeof(buf), 1);
@@ -297,14 +263,14 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteWriteWrite)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgPfuOneByteBufWrite2)
+TEST_F(DbgTest, DbgPsuOneByteBufWrite2)
 {
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 0x100, 1);
 
   // Write "ab"
-  DBG_PFU(dc, "%s", "ab");
+  DBG_PSU(dc, "ab");
 
   // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf), 1);
@@ -319,14 +285,14 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite2)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgPfuOneByteBufWrite3)
+TEST_F(DbgTest, DbgPsuOneByteBufWrite3)
 {
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 0x100, 1);
 
   // Write "abc"
-  DBG_PFU(dc, "%s", "abc");
+  DBG_PSU(dc, "abc");
 
   // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf), 1);
@@ -785,3 +751,37 @@ TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
 
   dbg_ctx_destroy(dc);
 }
+
+#ifndef _MSC_VER
+TEST_F(DbgTest, DbgPsnuEasy)
+{
+  char buffer[100];
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
+  ASSERT_TRUE(dc != NULL);
+
+  DBG_PSNU(dc, "hi\n");
+
+  fclose(memfile);
+  ASSERT_STREQ("TestBody:  hi\n", buffer);
+
+  dbg_ctx_destroy(dc);
+}
+#endif
+
+#ifndef _MSC_VER
+TEST_F(DbgTest, DbgPfnuEasy)
+{
+  char buffer[100];
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
+  ASSERT_TRUE(dc != NULL);
+
+  DBG_PFNU(dc, "Yo %s\n", "Dude");
+
+  fclose(memfile);
+  ASSERT_STREQ("TestBody:  Yo Dude\n", buffer);
+
+  dbg_ctx_destroy(dc);
+}
+#endif

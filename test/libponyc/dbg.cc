@@ -29,25 +29,39 @@ TEST_F(DbgTest, DbgDoEmpty)
   _DBG_DO();
 }
 
+#ifndef _MSC_VER
 TEST_F(DbgTest, DbgPsnuEasy)
 {
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stdout, 3);
+  char buffer[100];
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   ASSERT_TRUE(dc != NULL);
 
   DBG_PSNU(dc, "hi\n");
 
+  fclose(memfile);
+  ASSERT_STREQ("TestBody:  hi\n", buffer);
+
   dbg_ctx_destroy(dc);
 }
+#endif
 
+#ifndef _MSC_VER
 TEST_F(DbgTest, DbgPfnuEasy)
 {
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stdout, 3);
+  char buffer[100];
+  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(memfile, 1);
   ASSERT_TRUE(dc != NULL);
 
   DBG_PFNU(dc, "Yo %s\n", "Dude");
 
+  fclose(memfile);
+  ASSERT_STREQ("TestBody:  Yo Dude\n", buffer);
+
   dbg_ctx_destroy(dc);
 }
+#endif
 
 TEST_F(DbgTest, DbgDoSingleStatement)
 {
@@ -88,19 +102,6 @@ TEST_F(DbgTest, DbgCreateDestroy)
 {
   // Verify data structure
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_file((FILE*)0x1000, 1);
-  printf("DbgCreateDestroy: dc=%p\n", dc);
-  printf("DbgCreateDestroy: &dc->dst_file=%p\n", &dc->dst_file);
-  printf("DbgCreateDestroy: &dc->dst_buf=%p\n", &dc->dst_buf);
-  printf("DbgCreateDestroy: &dc->dst_buf_size=%p\n", &dc->dst_buf_size);
-  printf("DbgCreateDestroy: &dc->dst_buf_begi=%p\n", &dc->dst_buf_begi);
-  printf("DbgCreateDestroy: &dc->dst_buf_endi=%p\n", &dc->dst_buf_endi);
-  printf("DbgCreateDestroy: &dc->dst_buf_cnt=%p\n", &dc->dst_buf_cnt);
-  printf("DbgCreateDestroy: &dc->bits=%p\n", &dc->bits);
-  printf("DbgCreateDestroy: &dc->tmp_buf_size=%p\n", &dc->tmp_buf_size);
-  printf("DbgCreateDestroy: &dc->tmp_buf=%p\n", &dc->tmp_buf);
-  printf("DbgCreateDestroy: &dc->max_size=%p\n", &dc->max_size);
-  printf("DbgCreateDestroy: dc->bits=%p\n", dc->bits);
-  printf("DbgCreateDestroy: dc->tmp_buf_size=%zu\n", dc->tmp_buf_size);
   ASSERT_TRUE(dc->bits != NULL);
   EXPECT_EQ(dc->bits[0], 0);
   EXPECT_TRUE(dc->dst_file == (FILE*)0x1000);

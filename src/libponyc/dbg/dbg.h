@@ -127,11 +127,6 @@ static inline bool dbg_gb(dbg_ctx_t* dc, uint32_t bit_idx)
   _DBG_DO(dbg_printf(dc, "%s:  " str, __FUNCTION__))
 
 /**
- * Flush dc file
- */
-#define DBG_FLUSH(dc) _DBG_DO(fflush(dc->dst_file))
-
-/**
  * Printf if bit_idx is set
  */
 #define DBG_PF(dc, bit_idx, format, ...) \

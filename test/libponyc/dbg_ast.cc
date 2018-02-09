@@ -108,7 +108,7 @@ TEST_F(DbgAstTest, DbgAst)
 
   //ast_print(program, DBG_AST_PRINT_WIDTH);
   DBG_AST(dc, 0, program);
-  DBG_FLUSH(dc);
+  fflush(memfile);
 
   // Test if successful
   //printf("ast_text len=%zu buffer len=%zu\n",
@@ -132,7 +132,7 @@ TEST_F(DbgAstTest, DbgAstf)
   ast_t* actor = ast_child(module);
   ast_t* id = ast_child(actor);
   DBG_ASTF(dc, 0, id, "ast_child(actor)=");
-  DBG_FLUSH(dc);
+  fflush(memfile);
   //printf("expected len=%zu buffer len=%zu\n",
   //  strlen(expected), strlen(buffer));
   if(strcmp(expected, buffer) != 0)
@@ -173,7 +173,7 @@ TEST_F(DbgAstTest, DbgAstp)
   ast_t* actor = ast_child(module);
   ast_t* id = ast_child(actor);
   DBG_ASTP(dc, 0, id, 2);
-  DBG_FLUSH(dc);
+  fflush(memfile);
   //printf("expected len=%zu buffer len=%zu\n",
   //  strlen(expected), strlen(buffer));
   if(strcmp(expected, buffer) != 0)
@@ -211,7 +211,7 @@ TEST_F(DbgAstTest, DbgAsts)
   ast_t* actor = ast_child(module);
   ast_t* id = ast_child(actor);
   DBG_ASTS(dc, 0, id);
-  DBG_FLUSH(dc);
+  fflush(memfile);
   //printf("expected len=%zu buffer len=%zu\n",
   //  strlen(expected), strlen(buffer));
   if(strcmp(expected, buffer) != 0)

@@ -65,45 +65,35 @@ void dbg_ctx_destroy(dbg_ctx_t* dc)
   free(dc);
 }
 
-static void dump(const char* leader, char *p, size_t l)
-{
-  printf("%s", leader);
-  for(size_t i = 0; i < l; i++)
-  {
-    unsigned char c = *p++;
-    if(isalpha(c))
-      printf("%c", c);
-    else
-      printf("<%02x>", c);
-  }
-  printf("\n");
-}
+//static void dump(const char* leader, char *p, size_t l)
+//{
+//  printf("%s", leader);
+//  for(size_t i = 0; i < l; i++)
+//  {
+//    unsigned char c = *p++;
+//    if(isalpha(c))
+//      printf("%c", c);
+//    else
+//      printf("<%02x>", c);
+//  }
+//  printf("\n");
+//}
 
 static void move(dbg_ctx_t* dc, char* dst, const char* src, size_t size)
 {
-  printf("move:+ size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-      size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
   memcpy(dst, src, size);
   dc->dst_buf_cnt += size;
   dc->dst_buf_endi += size;
   ssize_t overwritten = dc->dst_buf_cnt - dc->dst_buf_size;
-  printf("move:  overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-      overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
   if(overwritten > 0)
   {
     dc->dst_buf_begi += overwritten;
     dc->dst_buf_cnt -= overwritten;
-    printf("move: overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-        overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
   }
-  printf("move:  overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-      overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
   if(dc->dst_buf_endi >= dc->dst_buf_size)
     dc->dst_buf_endi -= dc->dst_buf_size;
   if(dc->dst_buf_begi >= dc->dst_buf_size)
     dc->dst_buf_begi -= dc->dst_buf_size;
-  printf("move:- size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-      size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
 }
 
 size_t dbg_printf(dbg_ctx_t* dc, const char* format, ...)
@@ -123,21 +113,13 @@ size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
   char *restrict src;
   if(dc->dst_buf != NULL)
   {
-    printf("dbg_vprintf:+ dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-        dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
-
     dst = dc->tmp_buf;
     size = dc->max_size;
     int rv = vsnprintf(dst, size + 1, format, vlist);
     if(rv < 0)
-    {
-      printf("dbg_vprintf:- tmp_buf err=%d strerror=%s\n", rv, strerror(rv));
       return 0;
-    }
-    total = (size >= (size_t)rv) ? (size_t)rv : size;
-    printf("dbg_vprintf:  1  size=%zu rv=%d total=%zu tmp_buf=%s\n",
-        size, rv, total, dc->tmp_buf);
 
+    total = (size >= (size_t)rv) ? (size_t)rv : size;
     src = &dc->tmp_buf[0];
     dst = &dc->dst_buf[dc->dst_buf_endi];
     size = dc->dst_buf_size - dc->dst_buf_endi;
@@ -154,14 +136,8 @@ size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
       size = total - size;
       move(dc, dst, src, size);
     }
-
-    printf("dbg_vprintf: 12  dst_buf total=%zu size=%zu begi=%zu endi=%zu cnt=%zu\n",
-        total, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
-    dump("dbg_vprintf:-    ", dc->dst_buf, dc->dst_buf_size);
   } else {
-    printf("dbg_vprintf:+ dst_file\n");
     total = vfprintf(dc->dst_file, format, vlist);
-    printf("dbg_vprintf:- dst_file total=%zu\n", total);
   }
 
   return total;
@@ -173,14 +149,10 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t buf_size, size_t size)
   //MAYBE_UNUSED(buf_size);
   size_t total;
   char* src;
-  char* org_dst = dst;
 
   pony_assert(buf_size > size);
 
   // Reduce length by one to leave room for null trailer
-  printf("dbg_read:+ rd size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-      size, dc->dst_buf_size, dc->dst_buf_begi,
-      dc->dst_buf_endi, dc->dst_buf_cnt);
   total = 0;
   if((dst != NULL) && size > 0)
   {
@@ -189,26 +161,21 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t buf_size, size_t size)
     if(total > 0)
     {
       size_t idx = dc->dst_buf_begi;
-      printf("dbg_read:  total=%zu idx=%zu\n", total, idx);
       if(idx >= dc->dst_buf_endi)
       {
         // Might do one or two memcpy
         size = dc->dst_buf_size - idx;
-        printf("dbg_read:  one or two memcpy size=%zu\n", size);
       } else {
         // One memcpy
         size = dc->dst_buf_endi - idx;
-        printf("dbg_read:  one memcpy size=%zu\n", size);
       }
       // Adjust size incase its to large
       if(size > total)
         size = total;
-      printf("dbg_read:  total=%zu idx=%zu size=%zu\n", total, idx, size);
 
       // Do first copy
       size_t cnt = 0;
       src = &dc->dst_buf[idx];
-      printf("dbg_read:  1st memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
       memcpy(dst, src, size);
 
       // Record what we copied
@@ -225,7 +192,6 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t buf_size, size_t size)
         size = dc->dst_buf_endi;
 
         src = &dc->dst_buf[idx];
-        printf("dbg_read:  2nd memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
         memcpy(dst, src, size);
         dst += size;
         cnt += size;
@@ -245,63 +211,5 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t buf_size, size_t size)
     // Add null terminator
     *dst = 0;
   }
-  printf("dbg_read:- total=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu dst=%s\n",
-      total,
-      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt,
-      org_dst);
   return total;
 }
-
-#if 0
-NOT complete and NOT used
-void dbg_linearize(dbg_ctx_t* dc)
-{
-  char* src;
-  char* dst;
-  if(dc->dst_buf_endi < dc->dst_buf_begi)
-  {
-    size_t chunk_size = dc->dst_buf_size - dc->dst_buf_begi;
-    if(chunk_size < dc->tmp_buf_size)
-    {
-      // Fast path as entire beg_chunk fits in tmp_buf
-
-      // Copy entire chunk to tmp_buf
-      dst = dc->tmp_buf;
-      src = &dc->dst_buf[dc->dst_buf_begi];
-      memcpy(dst, src, chunk_size);
-
-      // Move the entire end_chunk which starts at the begining of dst_buf
-      // through to endi plus the zero byte using memmove as this is an
-      // overlapping move
-      dst = &dc->dst_buf[chunk_size];
-      src = dc->dst_buf;
-      memmove(dst,src, dc->dst_buf_endi + 1);
-
-      // Copy the chunk in tmp_buf back to dst_buf
-      dst = dc->dst_buf;
-      src = dc->tmp_buf;
-      memcpy(dst, src, chunk_size);
-
-    } else {
-      // Slow path we have to move things in tmp_buf_size chunks
-
-      // Copy end of the beg_chunk to tmp_buf to make a hole
-      dst = dc->tmp_buf;
-      src = &dc->dst_buf[dc->dst_buf_size - dc->tmp_buf_size];
-      memcpy(dst, src, dc->tmp_buf_size);
-
-      // Loop sliding chunk_size up to the beginning of the buffer
-      // through the end chunk
-      while(dc->dst_buf_begi > 0)
-      {
-      }
-    }
-
-    // Adjust begi and endi
-    dc->dst_buf_begi = 0;
-    dc->dst_buf_endi += chunk_size;
-  } else {
-    // Already linear
-  }
-}
-#endif

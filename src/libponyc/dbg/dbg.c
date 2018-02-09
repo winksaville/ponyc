@@ -127,13 +127,13 @@ int dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
           size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
     } else {
       // Two moves are needed
-      printf("dbg_vprintf:  6  two memcpy needed first size=%zu\n", size);
+      printf("dbg_vprintf:  6  1st memcpy needed size=%zu\n", size);
       memcpy(dst, src, size);
       dst = &dc->dst_buf[0];
       src = &dc->tmp_buf[size];
       size = rv - size;
       size_t new_endi = size;
-      printf("dbg_vprintf:  7  sec memcpy needed sec size=%zu\n", size);
+      printf("dbg_vprintf:  7  2nd memcpy needed size=%zu\n", size);
       memcpy(dst, src, size);
       if((dc->dst_buf_endi > dc->dst_buf_begi)
           && (new_endi < dc->dst_buf_begi))
@@ -179,37 +179,62 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t size)
   total = 0;
   if((dst != NULL) && size > 0)
   {
-    total = size;
-    if(total > dc->dst_buf_cnt)
-      total = dc->dst_buf_cnt;
-    size_t idx = dc->dst_buf_begi;
-    size_t cpy_size;
-    printf("dbg_read:  total=%zu idx=%zu\n", total, idx);
-    if(idx >= dc->dst_buf_endi)
+    // total = min(size, dc->dst_buf_cnt)
+    total = (size > dc->dst_buf_cnt) ? dc->dst_buf_cnt : size;
+    if(total > 0)
     {
-      // Might do one or two loops
-      cpy_size = dc->dst_buf_size - idx;
-      printf("dbg_read:  one or two loops cpy_size=%zu\n", cpy_size);
-    } else {
-      // At most one loop
-      cpy_size = dc->dst_buf_endi - idx;
-      printf("dbg_read:  zero or one loop cpy_size=%zu\n", cpy_size);
-    }
-    printf("dbg_read:  total=%zu idx=%zu cpy_size=%zu\n", total, idx, cpy_size);
-    size_t cnt = 0;
-    while(cnt < total)
-    {
+      size_t idx = dc->dst_buf_begi;
+      size_t cpy_size;
+      printf("dbg_read:  total=%zu idx=%zu\n", total, idx);
+      if(idx >= dc->dst_buf_endi)
+      {
+        // Might do one or two memcpy
+        cpy_size = dc->dst_buf_size - idx;
+        printf("dbg_read:  one or two memcpy cpy_size=%zu\n", cpy_size);
+      } else {
+        // One memcpy
+        cpy_size = dc->dst_buf_endi - idx;
+        printf("dbg_read:  one memcpy cpy_size=%zu\n", cpy_size);
+      }
+      printf("dbg_read:  total=%zu idx=%zu cpy_size=%zu\n", total, idx, cpy_size);
+
+      // Do first copy
+      size_t cnt = 0;
       src = &dc->dst_buf[idx];
+      printf("dbg_read  1st memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
       memcpy(dst, src, size);
-      idx = 0;
+
+      // Record what we copied
       dst += size;
       cnt += size;
-      size = dc->dst_buf_endi;
+
+      // Check if we're done
+      if(cnt < total)
+      {
+        pony_assert(dc->dst_buf_endi <= dc->dst_buf_begi);
+
+        // Not done, wrap to the begining of the buffer
+        // and size = endi
+        idx = 0;
+        size = dc->dst_buf_endi;
+
+        src = &dc->dst_buf[idx];
+        printf("dbg_read  2nd memcpy cnt=%zu size=%zu total=%zu\n", cnt, size, total);
+        memcpy(dst, src, size);
+      } else {
+        size = 0;
+      }
+      // Validate we've finished
+      pony_assert((cnt + size) == total);
+
+      // Adjust cnt and begi
+      dc->dst_buf_cnt -= total;
+      dc->dst_buf_begi += total;
+      if(dc->dst_buf_begi >= dc->dst_buf_size)
+        dc->dst_buf_begi -= dc->dst_buf_size;
     }
-    dc->dst_buf_cnt -= total;
-    dc->dst_buf_begi += total;
-    if(dc->dst_buf_begi >= dc->dst_buf_size)
-      dc->dst_buf_begi -= dc->dst_buf_size;
+
+    // Add null terminator
     *dst = 0;
   }
   printf("dbg_read:- total=%zu size=%zu begi=%zu endi=%zu cnt=%zu dst=%s\n",

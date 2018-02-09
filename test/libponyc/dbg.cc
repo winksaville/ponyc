@@ -49,24 +49,18 @@ TEST_F(DbgTest, DbgPfnuEasy)
   dbg_ctx_destroy(dc);
 }
 
-#ifndef _MSC_VER
 TEST_F(DbgTest, DbgDoSingleStatement)
 {
-  char buffer[8192];
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  _DBG_DO(fprintf(memfile, "Hi"));
-  fclose(memfile);
+  char buffer[10];
+  _DBG_DO(strcpy(buffer, "Hi"));
   EXPECT_STREQ(buffer, "Hi");
 }
 
 TEST_F(DbgTest, DbgDoMultiStatement)
 {
-  char buffer[8192];
-  FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
-  _DBG_DO(int i = 0; fprintf(memfile, "i=%d", i));
-  //fprintf(stderr, "i=%d", i); // This fails as i isn't in scope
-  fclose(memfile);
-  EXPECT_STREQ(buffer, "i=0");
+  char buffer[10];
+  _DBG_DO(strcpy(buffer, "Hi"); strcat(buffer, ", Bye"));
+  EXPECT_STREQ(buffer, "Hi, Bye");
 }
 
 TEST_F(DbgTest, DbgBitsArrayIdx)
@@ -761,33 +755,32 @@ TEST_F(DbgTest, DbgBnoi)
   EXPECT_EQ(bits_size, 30 + 3 + 2);
 }
 
-//TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
-//{
-//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, bits_size);
-//
-//  // Get bit index of second[0] and second[1] they should be adjacent
-//  uint32_t bi0 = dbg_bnoi(second, 0);
-//  uint32_t bi1 = dbg_bnoi(second, 1);
-//  EXPECT_EQ(bi0 + 1, bi1);
-//
-//  // Initially they should be zero
-//  bool o0 = dbg_gb(dc, bi0);
-//  bool o1 = dbg_gb(dc, bi1);
-//  EXPECT_FALSE(o0);
-//  EXPECT_FALSE(o1);
-//
-//  // Write new values and verify they changed
-//  dbg_sb(dc, bi0, !o0);
-//  dbg_sb(dc, bi1, !o1);
-//  EXPECT_EQ(dbg_gb(dc, bi0), !o0);
-//  EXPECT_EQ(dbg_gb(dc, bi1), !o1);
-//
-//  // Restore original values
-//  dbg_sb(dc, bi0, o0);
-//  dbg_sb(dc, bi1, o1);
-//  EXPECT_EQ(dbg_gb(dc, bi0), o0);
-//  EXPECT_EQ(dbg_gb(dc, bi1), o1);
-//
-//  dbg_ctx_destroy(dc);
-//}
-#endif
+TEST_F(DbgTest, DbgReadWriteBitsOfSecond)
+{
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_file(stderr, bits_size);
+
+  // Get bit index of second[0] and second[1] they should be adjacent
+  uint32_t bi0 = dbg_bnoi(second, 0);
+  uint32_t bi1 = dbg_bnoi(second, 1);
+  EXPECT_EQ(bi0 + 1, bi1);
+
+  // Initially they should be zero
+  bool o0 = dbg_gb(dc, bi0);
+  bool o1 = dbg_gb(dc, bi1);
+  EXPECT_FALSE(o0);
+  EXPECT_FALSE(o1);
+
+  // Write new values and verify they changed
+  dbg_sb(dc, bi0, !o0);
+  dbg_sb(dc, bi1, !o1);
+  EXPECT_EQ(dbg_gb(dc, bi0), !o0);
+  EXPECT_EQ(dbg_gb(dc, bi1), !o1);
+
+  // Restore original values
+  dbg_sb(dc, bi0, o0);
+  dbg_sb(dc, bi1, o1);
+  EXPECT_EQ(dbg_gb(dc, bi0), o0);
+  EXPECT_EQ(dbg_gb(dc, bi1), o1);
+
+  dbg_ctx_destroy(dc);
+}

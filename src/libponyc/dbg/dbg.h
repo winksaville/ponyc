@@ -75,16 +75,15 @@ size_t dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist);
 //void dbg_linearize(dbg_ctx_t* ctx);
 
 /**
- * Read data to the dst buf. dst is the destination and
- * size is the maximum size to read.
+ * Read data from the ctx to dst. dst_size is size of
+ * the dst and must be > size to accommodate the null
+ * terminator written at the end. Size is the maximum size
+ * to read.
  *
- * return number of bytes read not including the null
- * terminator written at the end. If size is 0 nothing
- * is written to dst and the return value is the number
- * of bytes that would be needed to hold the buffer not
- * counting the null terminator.
+ * @returns number of bytes read not including the null
+ * terminator written at the end.
  */
-size_t dbg_read(dbg_ctx_t* ctx, char* dst, size_t size);
+size_t dbg_read(dbg_ctx_t* ctx, char* dst, size_t dst_size, size_t size);
 
 /**
  * Set bit at bit_idx to bit_value

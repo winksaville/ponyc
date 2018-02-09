@@ -231,12 +231,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite)
   DBG_PFU(dc, "%s", "a");
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -254,12 +254,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteWrite)
   DBG_PFU(dc, "%s", "b");
 
   // Read and verify "b" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("b", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -278,12 +278,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteWriteWrite)
   DBG_PFU(dc, "%s", "c");
 
   // Read and verify "b" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("c", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -300,12 +300,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite2)
   DBG_PFU(dc, "%s", "ab");
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -322,12 +322,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite3)
   DBG_PFU(dc, "%s", "abc");
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -346,12 +346,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteEqTmpBufSize)
   DBG_PFU(dc, "%s", str);
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -370,12 +370,12 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteGtTmpBufSize)
   DBG_PFU(dc, "%s", str);
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -392,12 +392,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadRead)
   DBG_PFU(dc, "%s", "a");
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -414,7 +414,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadWriteReadWriteRead)
   DBG_PFU(dc, "%s", "a");
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
@@ -422,7 +422,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadWriteReadWriteRead)
   DBG_PFU(dc, "%s", "b");
 
   // Read and verify "b" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("b", buf);
 
@@ -430,7 +430,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadWriteReadWriteRead)
   DBG_PFU(dc, "%s", "c");
 
   // Read and verify "c" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("c", buf);
 
@@ -448,17 +448,17 @@ TEST_F(DbgTest, DbgPfuTwoByteBufFillEmpty)
   DBG_PFU(dc, "%s", "b");
 
   // Read verify "a"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 1);
   ASSERT_STREQ("a", buf);
 
   // Read verify "b"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 1);
   ASSERT_STREQ("b", buf);
 
   // Read verify ""
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 0);
   ASSERT_STREQ("", buf);
 
@@ -477,17 +477,17 @@ TEST_F(DbgTest, DbgPfuTwoByteBufOverFillBy1Empty)
   DBG_PFU(dc, "%s", "c");
 
   // Read verify "b"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 1);
   ASSERT_STREQ("b", buf);
 
   // Read verify "c"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 1);
   ASSERT_STREQ("c", buf);
 
   // Read verify ""
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 0);
   ASSERT_STREQ("", buf);
 
@@ -507,17 +507,17 @@ TEST_F(DbgTest, DbgPfuTwByteBufOverFillBy2ReadTillEmpty)
   DBG_PFU(dc, "%s", "d");
 
   // Read verify "c"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 1);
   ASSERT_STREQ("c", buf);
 
   // Read verify "d"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 1);
   ASSERT_STREQ("d", buf);
 
   // Read verify ""
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   ASSERT_EQ(cnt, 0);
   ASSERT_STREQ("", buf);
 
@@ -534,12 +534,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufFillSingleOpReadTillEmpty)
   DBG_PFU(dc, "%s", "ab");
 
   // Read verify "ab"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   ASSERT_EQ(cnt, 2);
   ASSERT_STREQ("ab", buf);
 
   // Read verify ""
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   ASSERT_EQ(cnt, 0);
   ASSERT_STREQ("", buf);
 
@@ -556,12 +556,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufOverFillBy1SingleOpReadTillEmpty)
   DBG_PFU(dc, "%s", "abc");
 
   // Read verify "ab"
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   ASSERT_EQ(cnt, 2);
   ASSERT_STREQ("ab", buf);
 
   // Read verify ""
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   ASSERT_EQ(cnt, 0);
   ASSERT_STREQ("", buf);
 
@@ -579,12 +579,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWrite2Read2)
   DBG_PFU(dc, "%s", str);
 
   // Read and verify "ab" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 2);
   EXPECT_STREQ("ab", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -603,12 +603,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteEqTmpBufSize)
   DBG_PFU(dc, "%s", str);
 
   // Read and verify "ab" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 2);
   EXPECT_STREQ("ab", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -627,12 +627,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
   DBG_PFU(dc, "%s", str);
 
   // Read and verify "ab" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 2);
   EXPECT_STREQ("ab", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -650,7 +650,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteWriteReadRead)
   DBG_PFU(dc, "%s", "b");
 
   // Read and verify "a" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("a", buf);
 
@@ -658,17 +658,47 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteWriteReadRead)
   DBG_PFU(dc, "%s", "c");
 
   // Read and verify "b" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("b", buf);
 
   // Read and verify "c" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
   EXPECT_EQ(cnt, 1);
   EXPECT_STREQ("c", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
+  EXPECT_EQ(cnt, 0);
+  EXPECT_STREQ("", buf);
+
+  dbg_ctx_destroy(dc);
+}
+
+TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadWrite2Read2)
+{
+  char buf[3];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+
+  // Write "a"
+  DBG_PFU(dc, "%s", "a");
+
+  // Read and verify "a"
+  cnt = dbg_read(dc, buf, sizeof(buf), 1);
+  EXPECT_EQ(cnt, 1);
+  EXPECT_STREQ("a", buf);
+
+  // Write "bc"
+  DBG_PFU(dc, "%s", "bc");
+
+  // Read and verify "bc"
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
+  EXPECT_EQ(cnt, 2);
+  EXPECT_STREQ("bc", buf);
+
+  // Read it again, it should now be empty
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -685,7 +715,7 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
   DBG_PFU(dc, "%s", "abc");
 
   // Read and verify "ab" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 2);
   //EXPECT_STREQ("ab", buf);
   EXPECT_STREQ("ab", buf);
@@ -694,13 +724,13 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
   DBG_PFU(dc, "%s", "d");
 
   // Read verify "cd" was written
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 2);
   //EXPECT_STREQ("cd", buf);
   EXPECT_STREQ("cd", buf);
 
   // Read it again, it should now be empty
-  cnt = dbg_read(dc, buf, sizeof(buf));
+  cnt = dbg_read(dc, buf, sizeof(buf), 2);
   EXPECT_EQ(cnt, 0);
   EXPECT_STREQ("", buf);
 
@@ -720,12 +750,12 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
 //  DBG_PFU(dc, "%s", "abc");
 //
 //  // Read verify "ab"
-//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 //  ASSERT_EQ(cnt, 2);
 //  ASSERT_STREQ("ab", buf);
 //
 //  // Read verify ""
-//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 //  ASSERT_EQ(cnt, 0);
 //  ASSERT_STREQ("", buf);
 //
@@ -745,12 +775,12 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
 //  DBG_PFU(dc, "%s", "abc");
 //
 //  // Read verify "ab"
-//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 //  ASSERT_EQ(cnt, 2);
 //  ASSERT_STREQ("ab", buf);
 //
 //  // Read verify ""
-//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 //  ASSERT_EQ(cnt, 0);
 //  ASSERT_STREQ("", buf);
 //
@@ -777,36 +807,36 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
 ////  dump("DbgPfuDbgRead ab dst_buf", dc->dst_buf, dc->dst_buf_size);
 ////
 ////  // Read verify "a" write "c"
-////  cnt = dbg_read(dc, buf, sizeof(buf));
+////  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 ////  //DBG_PFU(dc, "%s", "c");
 ////  printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n",
 ////      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
-////  dump("DbgPfuDbgRead", buf, sizeof(buf));
+////  dump("DbgPfuDbgRead", buf, sizeof(buf), 1);
 ////  ASSERT_EQ(cnt, 1);
 ////  ASSERT_STREQ("a", buf);
 ////
 ////  // Read verify "b" write "d"
-////  cnt = dbg_read(dc, buf, sizeof(buf));
+////  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 ////  DBG_PFU(dc, "%s", "d");
 ////  //printf("DbgPfuDbgRead: cnt=%zu size=%zu begi=%zu endi=%zu\n",
 ////  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
-////  //dump("DbgPfuDbgRead", buf, sizeof(buf));
+////  //dump("DbgPfuDbgRead", buf, sizeof(buf), 1);
 ////  ASSERT_EQ(cnt, 1);
 ////  ASSERT_STREQ("b", buf);
 ////
 ////  // Read vierfy "c" and "d"
-////  cnt = dbg_read(dc, buf, sizeof(buf));
+////  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 ////  ASSERT_EQ(cnt, 1);
 ////  ASSERT_STREQ("c", buf);
-////  cnt = dbg_read(dc, buf, sizeof(buf));
+////  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 ////  ASSERT_EQ(cnt, 1);
 ////  ASSERT_STREQ("d", buf);
 ////
 ////  // Another two reads should both be empty
-////  cnt = dbg_read(dc, buf, sizeof(buf));
+////  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 ////  ASSERT_EQ(cnt, 0);
 ////  ASSERT_STREQ("", buf);
-////  cnt = dbg_read(dc, buf, sizeof(buf));
+////  cnt = dbg_read(dc, buf, sizeof(buf), 1);
 ////  ASSERT_EQ(cnt, 0);
 ////  ASSERT_STREQ("", buf);
 ////
@@ -820,10 +850,10 @@ TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
 ////  DBG_PFU(dc, "%s", "a");
 ////  DBG_PFU(dc, "%s", "b");
 ////  char buf[2];
-////  dbg_read(dc, buf, sizeof(buf));
+////  dbg_read(dc, buf, sizeof(buf), 1);
 ////  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n",
 ////      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
-////  dump("DbgPfuDbgRead", buf, sizeof(buf));
+////  dump("DbgPfuDbgRead", buf, sizeof(buf), 1);
 ////  EXPECT_STREQ("a", buf);
 ////
 ////  dbg_ctx_destroy(dc);

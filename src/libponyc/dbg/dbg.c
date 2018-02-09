@@ -65,6 +65,34 @@ static void dump(const char* leader, char *p, size_t l)
   printf("\n");
 }
 
+static void move(dbg_ctx_t* dc, char* dst, const char* src, size_t size)
+{
+  printf("move:+ size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
+      size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+  // Nice, only one memcpy needed
+  memcpy(dst, src, size);
+  dc->dst_buf_cnt += size;
+  dc->dst_buf_endi += size;
+  ssize_t overwritten = dc->dst_buf_cnt - dc->dst_buf_size;
+  printf("move:  overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
+      overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+  if(overwritten > 0)
+  {
+    dc->dst_buf_begi += overwritten;
+    dc->dst_buf_cnt -= overwritten;
+    printf("move: overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
+        overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+  }
+  printf("move:  overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
+      overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+  if(dc->dst_buf_endi >= dc->dst_buf_size)
+    dc->dst_buf_endi -= dc->dst_buf_size;
+  if(dc->dst_buf_begi >= dc->dst_buf_size)
+    dc->dst_buf_begi -= dc->dst_buf_size;
+  printf("move:- size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
+      size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+}
+
 size_t dbg_printf(dbg_ctx_t* dc, const char* format, ...)
 {
   va_list vlist;
@@ -102,54 +130,16 @@ size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
     size = dc->dst_buf_size - dc->dst_buf_endi;
     if(size >= total)
     {
-      // Nice, only one memcpy needed
-      size = total;
-      memcpy(dst, src, size);
-      dc->dst_buf_cnt += size;
-      dc->dst_buf_endi += size;
-      ssize_t overwritten = dc->dst_buf_cnt - dc->dst_buf_size;
-      printf("dbg_vprintf: 2   one memcpy needed overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-          overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
-      if(overwritten > 0)
-      {
-        dc->dst_buf_begi += overwritten;
-        dc->dst_buf_cnt -= overwritten;
-        printf("dbg_vprintf: 3   one memcpy needed overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-            overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
-      }
-      printf("dbg_vprintf: 4   one memcpy needed overwritten=%zi size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-          overwritten, size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
-      if(dc->dst_buf_endi >= dc->dst_buf_size)
-        dc->dst_buf_endi -= dc->dst_buf_size;
-      if(dc->dst_buf_begi >= dc->dst_buf_size)
-        dc->dst_buf_begi -= dc->dst_buf_size;
-      printf("dbg_vprintf: 5   one memcpy needed size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
-          size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+      move(dc, dst, src, total);
     } else {
-      // Two moves are needed
-      printf("dbg_vprintf:  6  1st memcpy needed size=%zu\n", size);
-      memcpy(dst, src, size);
+      // Read the first part from the end of the dst_buf
+      move(dc, dst, src, size);
+
+      // Read the second part from the beginning of dst_buf
       dst = &dc->dst_buf[0];
       src = &dc->tmp_buf[size];
       size = total - size;
-      size_t new_endi = size;
-      printf("dbg_vprintf:  7  2nd memcpy needed size=%zu\n", size);
-      memcpy(dst, src, size);
-      if((dc->dst_buf_endi > dc->dst_buf_begi)
-          && (new_endi < dc->dst_buf_begi))
-      {
-        // Adjust endi
-        dc->dst_buf_endi = new_endi;
-        printf("dbg_vprintf:  8  adjust endi=%zu\n", dc->dst_buf_endi);
-      } else {
-        // Adjust endi and begi
-        dc->dst_buf_endi = new_endi;
-        printf("dbg_vprintf:  9  adjust endi=%zu\n", dc->dst_buf_endi);
-        dc->dst_buf_begi = new_endi + 1;
-        if (dc->dst_buf_begi >= dc->dst_buf_size)
-          dc->dst_buf_begi -= dc->dst_buf_size;
-        printf("dbg_vprintf: 10  adjust begi=%zu\n", dc->dst_buf_begi);
-      }
+      move(dc, dst, src, size);
     }
 
     printf("dbg_vprintf: 12  dst_buf total=%zu size=%zu begi=%zu endi=%zu cnt=%zu\n",
@@ -165,15 +155,17 @@ size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
 }
 
 
-size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t size)
+size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t buf_size, size_t size)
 {
+  //MAYBE_UNUSED(buf_size);
   size_t total;
   char* src;
   char* org_dst = dst;
 
+  pony_assert(buf_size > size);
+
   // Reduce length by one to leave room for null trailer
-  size -= 1;
-  printf("dbg_read:+ rd_size=%zu size=%zu begi=%zu endi=%zu cnt=%zu\n",
+  printf("dbg_read:+ rd size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
       size, dc->dst_buf_size, dc->dst_buf_begi,
       dc->dst_buf_endi, dc->dst_buf_cnt);
   total = 0;
@@ -240,7 +232,7 @@ size_t dbg_read(dbg_ctx_t* dc, char* dst, size_t size)
     // Add null terminator
     *dst = 0;
   }
-  printf("dbg_read:- total=%zu size=%zu begi=%zu endi=%zu cnt=%zu dst=%s\n",
+  printf("dbg_read:- total=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu dst=%s\n",
       total,
       dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt,
       org_dst);

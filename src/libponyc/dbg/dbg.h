@@ -16,9 +16,7 @@ PONY_EXTERN_C_BEGIN
 #define _DBG_BITS_ARRAY_IDX(bit_idx) ((bit_idx) / 32)
 #define _DBG_BIT_MASK(bit_idx) ((uint32_t)1 << (uint32_t)((bit_idx) & 0x1F))
 
-#if !defined(DBG_TMP_BUF_SIZE) || (DBG_TMP_BUF_SIZE <= 0)
-#define DBG_TMP_BUF_SIZE 0x200
-#endif
+#define DBG_TMP_BUF_SIZE 0x5
 
 /**
  * Debug context structure.
@@ -35,16 +33,16 @@ typedef struct {
   size_t dst_buf_begi;
   size_t dst_buf_endi;
   size_t dst_buf_cnt;
-  char tmp_buf[DBG_TMP_BUF_SIZE];
-  size_t tmp_buf_size;
-  size_t max_size;
   uint32_t* bits;
+  size_t max_size;
+  size_t tmp_buf_size;
+  char* tmp_buf;
 } dbg_ctx_t;
 
 /**
  * Create a dbg_ctx with char buf as destination
  */
-dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_size,
+dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_size, size_t tmp_buf_size,
     uint32_t number_of_bits);
 
 /**

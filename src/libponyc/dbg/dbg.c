@@ -6,21 +6,31 @@
 #include <string.h>
 #include <ctype.h>
 
-static dbg_ctx_t* calloc_ctx_and_bits(uint32_t number_of_bits)
+static dbg_ctx_t* calloc_ctx_and_bits(size_t tmp_buf_size,
+    uint32_t number_of_bits)
 {
   dbg_ctx_t* dc = (dbg_ctx_t*)calloc(1, sizeof(dbg_ctx_t));
+  pony_assert(dc != NULL);
   dc->bits = (uint32_t*)calloc(1, ((number_of_bits + 31) / 32) * 32);
-  dc->tmp_buf_size = DBG_TMP_BUF_SIZE;
   pony_assert(dc->bits != NULL);
   pony_assert(sizeof(dc->bits[0]) == 4);
+  dc->tmp_buf_size = tmp_buf_size;
+  if(tmp_buf_size > 0)
+  {
+    dc->tmp_buf = (char*)calloc(1, tmp_buf_size);
+    pony_assert(dc->tmp_buf != NULL);
+  }
+  else
+    dc->tmp_buf = NULL;
   return dc;
 }
 
 dbg_ctx_t* dbg_ctx_create_with_dst_file(FILE* file, uint32_t number_of_bits)
 {
-  dbg_ctx_t* dc = calloc_ctx_and_bits(number_of_bits);
+  dbg_ctx_t* dc = calloc_ctx_and_bits(0, number_of_bits);
   dc->dst_file = file;
   pony_assert(dc->dst_file != NULL);
+  pony_assert(dc->tmp_buf == NULL);
   pony_assert(dc->dst_buf == NULL);
   pony_assert(dc->dst_buf_size == 0);
   pony_assert(dc->dst_buf_begi == 0);
@@ -28,15 +38,18 @@ dbg_ctx_t* dbg_ctx_create_with_dst_file(FILE* file, uint32_t number_of_bits)
   return dc;
 }
 
-dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_buf_size,
+dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_buf_size, size_t tmp_buf_size,
     uint32_t number_of_bits)
 {
-  dbg_ctx_t* dc = calloc_ctx_and_bits(number_of_bits);
+  dbg_ctx_t* dc = calloc_ctx_and_bits(tmp_buf_size, number_of_bits);
   dc->dst_buf_size = dst_buf_size;
   dc->dst_buf = (char*)calloc(1, dst_buf_size);
   dc->max_size = dc->dst_buf_size > dc->tmp_buf_size ?
                       dc->tmp_buf_size : dc->dst_buf_size;
   pony_assert(dc->dst_file == NULL);
+  pony_assert(dc->dst_buf != NULL);
+  pony_assert(dc->tmp_buf != NULL);
+  pony_assert(dc->bits != NULL);
   pony_assert(dc->dst_buf_size > 0);
   pony_assert(dc->dst_buf_begi == 0);
   pony_assert(dc->dst_buf_endi == 0);
@@ -47,6 +60,7 @@ dbg_ctx_t* dbg_ctx_create_with_dst_buf(size_t dst_buf_size,
 void dbg_ctx_destroy(dbg_ctx_t* dc)
 {
   free(dc->dst_buf);
+  free(dc->tmp_buf);
   free(dc->bits);
   free(dc);
 }
@@ -69,7 +83,6 @@ static void move(dbg_ctx_t* dc, char* dst, const char* src, size_t size)
 {
   printf("move:+ size=%zu dst_buf size=%zu begi=%zu endi=%zu cnt=%zu\n",
       size, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
-  // Nice, only one memcpy needed
   memcpy(dst, src, size);
   dc->dst_buf_cnt += size;
   dc->dst_buf_endi += size;

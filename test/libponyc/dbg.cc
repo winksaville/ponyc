@@ -57,7 +57,7 @@ TEST_F(DbgTest, DbgDoSingleStatement)
   FILE* memfile = fmemopen(buffer, sizeof(buffer), "w+");
   _DBG_DO(fprintf(memfile, "Hi"));
   fclose(memfile);
-  EXPECT_EQ(strcmp(buffer, "Hi"), 0);
+  EXPECT_STREQ(buffer, "Hi");
 }
 
 TEST_F(DbgTest, DbgDoMultiStatement)
@@ -67,7 +67,7 @@ TEST_F(DbgTest, DbgDoMultiStatement)
   _DBG_DO(int i = 0; fprintf(memfile, "i=%d", i));
   //fprintf(stderr, "i=%d", i); // This fails as i isn't in scope
   fclose(memfile);
-  EXPECT_EQ(strcmp(buffer, "i=0"), 0);
+  EXPECT_STREQ(buffer, "i=0");
 }
 
 TEST_F(DbgTest, DbgBitsArrayIdx)
@@ -221,34 +221,24 @@ TEST_F(DbgTest, WalkingTwoBits)
   dbg_ctx_destroy(dc);
 }
 
-TEST_F(DbgTest, DbgPfu)
-{
-  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
-
-  DBG_PFU(dc, "%s", "a");
-  EXPECT_EQ(strcmp("a", dbg_get_buf(dc)), 0);
-
-  dbg_ctx_destroy(dc);
-}
-
 TEST_F(DbgTest, DbgPfuOneByteBufWrite)
 {
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 
-  // Write one char, "a"
+  // Write "a"
   DBG_PFU(dc, "%s", "a");
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -263,15 +253,15 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteWrite)
   DBG_PFU(dc, "%s", "a");
   DBG_PFU(dc, "%s", "b");
 
-  // Read it back and verify "b" was written
+  // Read and verify "b" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("b", buf), 0);
+  EXPECT_STREQ("b", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -287,15 +277,15 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteWriteWrite)
   DBG_PFU(dc, "%s", "b");
   DBG_PFU(dc, "%s", "c");
 
-  // Read it back and verify "b" was written
+  // Read and verify "b" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("c", buf), 0);
+  EXPECT_STREQ("c", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -306,18 +296,18 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite2)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 
-  // Write one char, "ab"
+  // Write "ab"
   DBG_PFU(dc, "%s", "ab");
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -328,18 +318,18 @@ TEST_F(DbgTest, DbgPfuOneByteBufWrite3)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 
-  // Write one char, "abc"
+  // Write "abc"
   DBG_PFU(dc, "%s", "abc");
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -350,20 +340,20 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteEqTmpBufSize)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 
-  // Write one char, "abcde"
+  // Write "abcde"
   const char* str = "abcde";
   ASSERT_EQ(strlen(str), DBG_TMP_BUF_SIZE);
   DBG_PFU(dc, "%s", str);
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -374,20 +364,20 @@ TEST_F(DbgTest, DbgPfuOneByteBufWriteGtTmpBufSize)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 
-  // Write one char, "abcdef"
+  // Write "abcdef"
   const char* str = "abcdef";
   ASSERT_GT(strlen(str), DBG_TMP_BUF_SIZE);
   DBG_PFU(dc, "%s", str);
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -398,18 +388,18 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadRead)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
 
-  // Write one char, "a"
+  // Write "a"
   DBG_PFU(dc, "%s", "a");
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -419,32 +409,30 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteReadWriteReadWriteRead)
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
-  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n",
-      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 
-  // Write one char, "a"
+  // Write "a"
   DBG_PFU(dc, "%s", "a");
 
-  // Read it back and verify "a" was written
+  // Read and verify "a" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("a", buf), 0);
+  EXPECT_STREQ("a", buf);
 
-  // Write one char, "b"
+  // Write "b"
   DBG_PFU(dc, "%s", "b");
 
-  // Read it back and verify "b" was written
+  // Read and verify "b" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("b", buf), 0);
+  EXPECT_STREQ("b", buf);
 
-  // Write one char, "c"
+  // Write "c"
   DBG_PFU(dc, "%s", "c");
 
-  // Read it back and verify "c" was written
+  // Read and verify "c" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 1);
-  EXPECT_EQ(strcmp("c", buf), 0);
+  EXPECT_STREQ("c", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -454,8 +442,6 @@ TEST_F(DbgTest, DbgPfuTwoByteBufFillEmpty)
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
-  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n",
-      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 
   // Write "a" then "b"
   DBG_PFU(dc, "%s", "a");
@@ -464,17 +450,17 @@ TEST_F(DbgTest, DbgPfuTwoByteBufFillEmpty)
   // Read verify "a"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 1);
-  ASSERT_EQ(strcmp("a", buf), 0);
+  ASSERT_STREQ("a", buf);
 
   // Read verify "b"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 1);
-  ASSERT_EQ(strcmp("b", buf), 0);
+  ASSERT_STREQ("b", buf);
 
   // Read verify ""
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 0);
-  ASSERT_EQ(strcmp("", buf), 0);
+  ASSERT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -484,8 +470,6 @@ TEST_F(DbgTest, DbgPfuTwoByteBufOverFillBy1Empty)
   char buf[2];
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
-  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n",
-      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 
   // Write "a", "b", "c"
   DBG_PFU(dc, "%s", "a");
@@ -495,17 +479,17 @@ TEST_F(DbgTest, DbgPfuTwoByteBufOverFillBy1Empty)
   // Read verify "b"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 1);
-  ASSERT_EQ(strcmp("b", buf), 0);
+  ASSERT_STREQ("b", buf);
 
   // Read verify "c"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 1);
-  ASSERT_EQ(strcmp("c", buf), 0);
+  ASSERT_STREQ("c", buf);
 
   // Read verify ""
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 0);
-  ASSERT_EQ(strcmp("", buf), 0);
+  ASSERT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -525,17 +509,17 @@ TEST_F(DbgTest, DbgPfuTwByteBufOverFillBy2ReadTillEmpty)
   // Read verify "c"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 1);
-  ASSERT_EQ(strcmp("c", buf), 0);
+  ASSERT_STREQ("c", buf);
 
   // Read verify "d"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 1);
-  ASSERT_EQ(strcmp("d", buf), 0);
+  ASSERT_STREQ("d", buf);
 
   // Read verify ""
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 0);
-  ASSERT_EQ(strcmp("", buf), 0);
+  ASSERT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -552,12 +536,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufFillSingleOpReadTillEmpty)
   // Read verify "ab"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 2);
-  ASSERT_EQ(strcmp("ab", buf), 0);
+  ASSERT_STREQ("ab", buf);
 
   // Read verify ""
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 0);
-  ASSERT_EQ(strcmp("", buf), 0);
+  ASSERT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -574,12 +558,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufOverFillBy1SingleOpReadTillEmpty)
   // Read verify "ab"
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 2);
-  ASSERT_EQ(strcmp("ab", buf), 0);
+  ASSERT_STREQ("ab", buf);
 
   // Read verify ""
   cnt = dbg_read(dc, buf, sizeof(buf));
   ASSERT_EQ(cnt, 0);
-  ASSERT_EQ(strcmp("", buf), 0);
+  ASSERT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -590,19 +574,19 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWrite2Read2)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
 
-  // Write one char, "ab"
+  // Write "ab"
   const char* str = "ab";
   DBG_PFU(dc, "%s", str);
 
-  // Read it back and verify "ab" was written
+  // Read and verify "ab" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 2);
-  EXPECT_EQ(strcmp("ab", buf), 0);
+  EXPECT_STREQ("ab", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -613,20 +597,20 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteEqTmpBufSize)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
 
-  // Write one char, "abcde"
+  // Write "abcde"
   const char* str = "abcde";
   ASSERT_EQ(strlen(str), DBG_TMP_BUF_SIZE);
   DBG_PFU(dc, "%s", str);
 
-  // Read it back and verify "ab" was written
+  // Read and verify "ab" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 2);
-  EXPECT_EQ(strcmp("ab", buf), 0);
+  EXPECT_STREQ("ab", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
@@ -637,23 +621,91 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
   size_t cnt;
   dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
 
-  // Write one char, "abcdef"
+  // Write "abcdef"
   const char* str = "abcdef";
   ASSERT_GT(strlen(str), DBG_TMP_BUF_SIZE);
   DBG_PFU(dc, "%s", str);
 
-  // Read it back and verify "ab" was written
+  // Read and verify "ab" was written
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 2);
-  EXPECT_EQ(strcmp("ab", buf), 0);
+  EXPECT_STREQ("ab", buf);
 
   // Read it again, it should now be empty
   cnt = dbg_read(dc, buf, sizeof(buf));
   EXPECT_EQ(cnt, 0);
-  EXPECT_EQ(strcmp("", buf), 0);
+  EXPECT_STREQ("", buf);
 
   dbg_ctx_destroy(dc);
 }
+
+TEST_F(DbgTest, DbgPfuTwoByteBufWriteWriteReadRead)
+{
+  char buf[2];
+  size_t cnt;
+  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
+
+  // Write "a", "b"
+  DBG_PFU(dc, "%s", "a");
+  DBG_PFU(dc, "%s", "b");
+
+  // Read and verify "a" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_STREQ("a", buf);
+
+  // Write "c"
+  DBG_PFU(dc, "%s", "c");
+
+  // Read and verify "b" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_STREQ("b", buf);
+
+  // Read and verify "c" was written
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  EXPECT_EQ(cnt, 1);
+  EXPECT_STREQ("c", buf);
+
+  // Read it again, it should now be empty
+  cnt = dbg_read(dc, buf, sizeof(buf));
+  EXPECT_EQ(cnt, 0);
+  EXPECT_STREQ("", buf);
+
+  dbg_ctx_destroy(dc);
+}
+
+//TEST_F(DbgTest, DbgPfuThreeByteBufWrite3Read2WriteRead2)
+//{
+//  char buf[3];
+//  size_t cnt;
+//  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(3, 1);
+//
+//  // Write "abc"
+//  DBG_PFU(dc, "%s", "abc");
+//
+//  // Read and verify "ab" was written
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  EXPECT_EQ(cnt, 2);
+//  //EXPECT_STREQ("ab", buf);
+//  EXPECT_STREQ("ab", buf);
+//
+//  // Write "d"
+//  DBG_PFU(dc, "%s", "d");
+//
+//  // Read verify "cd" was written
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  EXPECT_EQ(cnt, 2);
+//  //EXPECT_STREQ("cd", buf);
+//  EXPECT_STREQ("cd", buf);
+//
+//  // Read it again, it should now be empty
+//  cnt = dbg_read(dc, buf, sizeof(buf));
+//  EXPECT_EQ(cnt, 0);
+//  EXPECT_STREQ("", buf);
+//
+//  dbg_ctx_destroy(dc);
+//}
 
 //TEST_F(DbgTest, DbgPfuWrite1OverFillSingleOp)
 //{
@@ -670,12 +722,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // Read verify "ab"
 //  cnt = dbg_read(dc, buf, sizeof(buf));
 //  ASSERT_EQ(cnt, 2);
-//  ASSERT_EQ(strcmp("ab", buf), 0);
+//  ASSERT_STREQ("ab", buf);
 //
 //  // Read verify ""
 //  cnt = dbg_read(dc, buf, sizeof(buf));
 //  ASSERT_EQ(cnt, 0);
-//  ASSERT_EQ(strcmp("", buf), 0);
+//  ASSERT_STREQ("", buf);
 //
 //  dbg_ctx_destroy(dc);
 //}
@@ -695,12 +747,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // Read verify "ab"
 //  cnt = dbg_read(dc, buf, sizeof(buf));
 //  ASSERT_EQ(cnt, 2);
-//  ASSERT_EQ(strcmp("ab", buf), 0);
+//  ASSERT_STREQ("ab", buf);
 //
 //  // Read verify ""
 //  cnt = dbg_read(dc, buf, sizeof(buf));
 //  ASSERT_EQ(cnt, 0);
-//  ASSERT_EQ(strcmp("", buf), 0);
+//  ASSERT_STREQ("", buf);
 //
 //  dbg_ctx_destroy(dc);
 //}
@@ -731,7 +783,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////      cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 ////  dump("DbgPfuDbgRead", buf, sizeof(buf));
 ////  ASSERT_EQ(cnt, 1);
-////  ASSERT_EQ(strcmp("a", buf), 0);
+////  ASSERT_STREQ("a", buf);
 ////
 ////  // Read verify "b" write "d"
 ////  cnt = dbg_read(dc, buf, sizeof(buf));
@@ -740,23 +792,23 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////  //    cnt, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 ////  //dump("DbgPfuDbgRead", buf, sizeof(buf));
 ////  ASSERT_EQ(cnt, 1);
-////  ASSERT_EQ(strcmp("b", buf), 0);
+////  ASSERT_STREQ("b", buf);
 ////
 ////  // Read vierfy "c" and "d"
 ////  cnt = dbg_read(dc, buf, sizeof(buf));
 ////  ASSERT_EQ(cnt, 1);
-////  ASSERT_EQ(strcmp("c", buf), 0);
+////  ASSERT_STREQ("c", buf);
 ////  cnt = dbg_read(dc, buf, sizeof(buf));
 ////  ASSERT_EQ(cnt, 1);
-////  ASSERT_EQ(strcmp("d", buf), 0);
+////  ASSERT_STREQ("d", buf);
 ////
 ////  // Another two reads should both be empty
 ////  cnt = dbg_read(dc, buf, sizeof(buf));
 ////  ASSERT_EQ(cnt, 0);
-////  ASSERT_EQ(strcmp("", buf), 0);
+////  ASSERT_STREQ("", buf);
 ////  cnt = dbg_read(dc, buf, sizeof(buf));
 ////  ASSERT_EQ(cnt, 0);
-////  ASSERT_EQ(strcmp("", buf), 0);
+////  ASSERT_STREQ("", buf);
 ////
 ////  dbg_ctx_destroy(dc);
 ////}
@@ -772,7 +824,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////  printf("DbgPfuDbgRead: dst_buf size=%zu begi=%zu endi=%zu\n",
 ////      dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi);
 ////  dump("DbgPfuDbgRead", buf, sizeof(buf));
-////  EXPECT_EQ(strcmp("a", buf), 0);
+////  EXPECT_STREQ("a", buf);
 ////
 ////  dbg_ctx_destroy(dc);
 ////}
@@ -782,7 +834,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 ////
 ////  DBG_PFU(dc, "%s", "a");
-////  EXPECT_EQ(strcmp("", dbg_get_buf(dc)), 0);
+////  EXPECT_STREQ("", dbg_get_buf(dc)), 0);
 ////
 ////  dbg_ctx_destroy(dc);
 ////}
@@ -792,7 +844,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(1, 1);
 ////
 ////  DBG_PFU(dc, "%s", "ab");
-////  EXPECT_EQ(strcmp("", dbg_get_buf(dc)), 0);
+////  EXPECT_STREQ("", dbg_get_buf(dc)), 0);
 ////
 ////  dbg_ctx_destroy(dc);
 ////}
@@ -802,7 +854,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////  dbg_ctx_t* dc = dbg_ctx_create_with_dst_buf(2, 1);
 ////
 ////  DBG_PFU(dc, "%s", "ab");
-////  EXPECT_EQ(strcmp("a", dbg_get_buf(dc)), 0);
+////  EXPECT_STREQ("a", dbg_get_buf(dc)), 0);
 ////
 ////  dbg_ctx_destroy(dc);
 ////}
@@ -815,11 +867,11 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 ////  DBG_PFU(dc, "%s", "a");
 ////  dump("DbgPfuTwoSecondTruncated a", dbg_get_buf(dc), 4);
 ////  printf("DbgPfuTwoSecondTruncated a: %s\n", dbg_get_buf(dc));
-////  EXPECT_EQ(strcmp("a", dbg_get_buf(dc)), 0);
+////  EXPECT_STREQ("a", dbg_get_buf(dc)), 0);
 ////  DBG_PFU(dc, "%s", "bc");
 ////  dump("DbgPfuTwoSecondTruncated bc", dbg_get_buf(dc), 4);
 ////  printf("DbgPfuTwoSecondTruncated bc: %s\n", dbg_get_buf(dc));
-////  EXPECT_EQ(strcmp("ab", dbg_get_buf(dc)), 0);
+////  EXPECT_STREQ("ab", dbg_get_buf(dc)), 0);
 ////
 ////  dbg_ctx_destroy(dc);
 ////}
@@ -837,7 +889,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // Validate DBG_PFU still prints and after fclose buffer is valid
 //  DBG_PSU(dc, "v=123");
 //  fclose(memfile);
-//  EXPECT_EQ(strcmp("v=123", buffer), 0);
+//  EXPECT_STREQ("v=123", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //}
@@ -855,7 +907,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // Validate DBG_PFU still prints and after fclose buffer is valid
 //  DBG_PFNU(dc, "v=%d", 123);
 //  fclose(memfile);
-//  EXPECT_EQ(strcmp("TestBody:  v=123", buffer), 0);
+//  EXPECT_STREQ("TestBody:  v=123", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //}
@@ -873,7 +925,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // Validate DBG_PFU still prints and after fclose buffer is valid
 //  DBG_PSNU(dc, "v=123");
 //  fclose(memfile);
-//  EXPECT_EQ(strcmp("TestBody:  v=123", buffer), 0);
+//  EXPECT_STREQ("TestBody:  v=123", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //}
@@ -890,7 +942,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // Validate DBG_FLUSH can be used instead of fclose
 //  DBG_PSU(dc, "123");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("123", buffer), 0);
+//  EXPECT_STREQ("123", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //  fclose(memfile);
@@ -959,25 +1011,25 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // because bit is 0
 //  DBG_PF(dc, 0, "%d", 123);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("", buffer), 0);
+//  EXPECT_STREQ("", buffer), 0);
 //
 //  // Now set bit and verify something is printed
 //  dbg_sb(dc, 0, true);
 //  DBG_PF(dc, 0, "%d", 456);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("456", buffer), 0);
+//  EXPECT_STREQ("456", buffer), 0);
 //
 //  // Now clear bit and verify nothing is added
 //  dbg_sb(dc, 0, false);
 //  DBG_PF(dc, 0, "%d", 789);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("456", buffer), 0);
+//  EXPECT_STREQ("456", buffer), 0);
 //
 //  // Now set bit and verify it is now added
 //  dbg_sb(dc, 0, true);
 //  DBG_PF(dc, 0, "%d\n", 789);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("456789\n", buffer), 0);
+//  EXPECT_STREQ("456789\n", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //  fclose(memfile);
@@ -996,25 +1048,25 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  // because bit is 0
 //  DBG_PS(dc, 0, "123");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("", buffer), 0);
+//  EXPECT_STREQ("", buffer), 0);
 //
 //  // Now set bit and verify something is printed
 //  dbg_sb(dc, 0, true);
 //  DBG_PS(dc, 0, "456");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("456", buffer), 0);
+//  EXPECT_STREQ("456", buffer), 0);
 //
 //  // Now clear bit and verify nothing is added
 //  dbg_sb(dc, 0, false);
 //  DBG_PS(dc, 0, "789");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("456", buffer), 0);
+//  EXPECT_STREQ("456", buffer), 0);
 //
 //  // Now set bit and verify it is now added
 //  dbg_sb(dc, 0, true);
 //  DBG_PS(dc, 0, "789\n");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("456789\n", buffer), 0);
+//  EXPECT_STREQ("456789\n", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //  fclose(memfile);
@@ -1033,12 +1085,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  dbg_sb(dc, 0, true);
 //  DBG_PFN(dc, 0, "%d", 456);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:  456", buffer), 0);
+//  EXPECT_STREQ("TestBody:  456", buffer), 0);
 //
 //  // Now append somethign using DBG_PF (no function name) and verify
 //  DBG_PF(dc, 0, "%d\n", 789);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:  456789\n", buffer), 0);
+//  EXPECT_STREQ("TestBody:  456789\n", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //  fclose(memfile);
@@ -1057,12 +1109,12 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  dbg_sb(dc, 0, true);
 //  DBG_PSN(dc, 0, "456");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:  456", buffer), 0);
+//  EXPECT_STREQ("TestBody:  456", buffer), 0);
 //
 //  // Now append somethign using DBG_PF (no function name) and verify
 //  DBG_PS(dc, 0, "789\n");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:  456789\n", buffer), 0);
+//  EXPECT_STREQ("TestBody:  456789\n", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //  fclose(memfile);
@@ -1083,7 +1135,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  DBG_E(dc, 0);
 //  DBG_X(dc, 0);
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:+\nTestBody:-\n", buffer), 0);
+//  EXPECT_STREQ("TestBody:+\nTestBody:-\n", buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
 //  fclose(memfile);
@@ -1104,7 +1156,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  DBG_PFE(dc, 0, "Hello, %s\n", "World");
 //  DBG_PFX(dc, 0, "%s", "Good bye\n");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:+ Hello, World\nTestBody:- Good bye\n",
+//  EXPECT_STREQ("TestBody:+ Hello, World\nTestBody:- Good bye\n",
 //        buffer), 0);
 //
 //  dbg_ctx_destroy(dc);
@@ -1126,7 +1178,7 @@ TEST_F(DbgTest, DbgPfuTwoByteBufWriteGtTmpBufSize)
 //  DBG_PSE(dc, 0, "Hello, World\n");
 //  DBG_PSX(dc, 0, "Good bye\n");
 //  DBG_FLUSH(dc);
-//  EXPECT_EQ(strcmp("TestBody:+ Hello, World\nTestBody:- Good bye\n",
+//  EXPECT_STREQ("TestBody:+ Hello, World\nTestBody:- Good bye\n",
 //        buffer), 0);
 //
 //  dbg_ctx_destroy(dc);

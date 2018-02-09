@@ -22,7 +22,6 @@ static dbg_ctx_t* dc = NULL;
 INITIALIZER(initialize)
 {
   dc = dbg_ctx_create_with_dst_file(stderr, 32);
-  fprintf(stderr, "initialize:# %s\n", __FILE__);
 }
 
 // Finalize debug context
@@ -30,7 +29,6 @@ FINALIZER(finalize)
 {
   dbg_ctx_destroy(dc);
   dc = NULL;
-  fprintf(stderr, "finalize:# %s\n", __FILE__);
 }
 
 static inline void maybe_enable_debug(ast_t* ast, pass_opt_t* opt)

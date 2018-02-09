@@ -51,15 +51,6 @@ void dbg_ctx_destroy(dbg_ctx_t* dc)
   free(dc);
 }
 
-int dbg_printf(dbg_ctx_t* dc, const char* format, ...)
-{
-  va_list vlist;
-  va_start(vlist, format);
-  int cnt = dbg_vprintf(dc, format, vlist);
-  va_end(vlist);
-  return cnt;
-}
-
 static void dump(const char* leader, char *p, size_t l)
 {
   printf("%s", leader);
@@ -74,10 +65,19 @@ static void dump(const char* leader, char *p, size_t l)
   printf("\n");
 }
 
-int dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
+size_t dbg_printf(dbg_ctx_t* dc, const char* format, ...)
 {
-  int rv;
+  va_list vlist;
+  va_start(vlist, format);
+  size_t total = dbg_vprintf(dc, format, vlist);
+  va_end(vlist);
+  return total;
+}
+
+size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
+{
   size_t size;
+  size_t total;
   char *restrict dst;
   char *restrict src;
   if(dc->dst_buf != NULL)
@@ -87,23 +87,23 @@ int dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
 
     dst = dc->tmp_buf;
     size = dc->max_size;
-    rv = vsnprintf(dst, size + 1, format, vlist);
+    int rv = vsnprintf(dst, size + 1, format, vlist);
     if(rv < 0)
     {
       printf("dbg_vprintf:- tmp_buf err=%d strerror=%s\n", rv, strerror(rv));
       return 0;
     }
-    size_t written = (size >= (size_t)rv) ? (size_t)rv : size;
-    printf("dbg_vprintf:  1  size=%zu rv=%d written=%zu tmp_buf=%s\n",
-        size, rv, written, dc->tmp_buf);
+    total = (size >= (size_t)rv) ? (size_t)rv : size;
+    printf("dbg_vprintf:  1  size=%zu rv=%d total=%zu tmp_buf=%s\n",
+        size, rv, total, dc->tmp_buf);
 
     src = &dc->tmp_buf[0];
     dst = &dc->dst_buf[dc->dst_buf_endi];
     size = dc->dst_buf_size - dc->dst_buf_endi;
-    if(size >= written)
+    if(size >= total)
     {
       // Nice, only one memcpy needed
-      size = written;
+      size = total;
       memcpy(dst, src, size);
       dc->dst_buf_cnt += size;
       dc->dst_buf_endi += size;
@@ -131,7 +131,7 @@ int dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
       memcpy(dst, src, size);
       dst = &dc->dst_buf[0];
       src = &dc->tmp_buf[size];
-      size = rv - size;
+      size = total - size;
       size_t new_endi = size;
       printf("dbg_vprintf:  7  2nd memcpy needed size=%zu\n", size);
       memcpy(dst, src, size);
@@ -152,16 +152,16 @@ int dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
       }
     }
 
-    printf("dbg_vprintf: 12  dst_buf rv=%d size=%zu begi=%zu endi=%zu cnt=%zu\n",
-        rv, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
+    printf("dbg_vprintf: 12  dst_buf total=%zu size=%zu begi=%zu endi=%zu cnt=%zu\n",
+        total, dc->dst_buf_size, dc->dst_buf_begi, dc->dst_buf_endi, dc->dst_buf_cnt);
     dump("dbg_vprintf:-    ", dc->dst_buf, dc->dst_buf_size);
   } else {
     printf("dbg_vprintf:+ dst_file\n");
-    rv = vfprintf(dc->dst_file, format, vlist);
-    printf("dbg_vprintf:- dst_file rv=%d\n", rv);
+    total = vfprintf(dc->dst_file, format, vlist);
+    printf("dbg_vprintf:- dst_file total=%zu\n", total);
   }
 
-  return rv;
+  return total;
 }
 
 

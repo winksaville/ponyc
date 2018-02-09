@@ -60,13 +60,13 @@ void dbg_ctx_destroy(dbg_ctx_t* dbg_ctx);
 /**
  * Print a formated string to the current dbg_ctx destination
  */
-int dbg_printf(dbg_ctx_t* dbg_ctx, const char* format, ...);
+size_t dbg_printf(dbg_ctx_t* dbg_ctx, const char* format, ...);
 
 /**
  * Print a formated string to the current dbg_ctx destination with
  * the args being a va_list.
  */
-int dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist);
+size_t dbg_vprintf(dbg_ctx_t* dbg_ctx, const char* format, va_list vlist);
 
 /**
  * used by dbg_get_buf to linearize the buffer which

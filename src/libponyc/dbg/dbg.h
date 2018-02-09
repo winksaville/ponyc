@@ -34,6 +34,7 @@ typedef struct {
   size_t dst_buf_size;
   size_t dst_buf_begi;
   size_t dst_buf_endi;
+  size_t dst_buf_cnt;
   char tmp_buf[DBG_TMP_BUF_SIZE];
   size_t tmp_buf_size;
   size_t max_size;

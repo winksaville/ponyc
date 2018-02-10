@@ -109,8 +109,8 @@ size_t dbg_vprintf(dbg_ctx_t* dc, const char* format, va_list vlist)
 {
   size_t size;
   size_t total;
-  char *restrict dst;
-  char *restrict src;
+  char * dst;
+  char * src;
   if(dc->dst_buf != NULL)
   {
     dst = dc->tmp_buf;

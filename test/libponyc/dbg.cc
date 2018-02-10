@@ -763,8 +763,13 @@ TEST_F(DbgTest, DbgPfnu)
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 19);
   EXPECT_STREQ("TestBody:  Yo Dude\n", buf);
+#else
+  EXPECT_EQ(cnt, 41);
+  EXPECT_STREQ("DbgTest_DbgPfnu_Test::TestBody:  Yo Dude\n", buf);
+#endif
 
   dbg_ctx_destroy(dc);
 }
@@ -780,8 +785,13 @@ TEST_F(DbgTest, DbgPsnu)
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 14);
   EXPECT_STREQ("TestBody:  hi\n", buf);
+#else
+  EXPECT_EQ(cnt, 36);
+  EXPECT_STREQ("DbgTest_DbgPsnu_Test::TestBody:  hi\n", buf);
+#endif
 
   dbg_ctx_destroy(dc);
 }
@@ -834,8 +844,13 @@ TEST_F(DbgTest, DbgPfn)
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 19);
   EXPECT_STREQ("TestBody:  hi there", buf);
+#else
+  EXPECT_EQ(cnt, 40);
+  EXPECT_STREQ("DbgTest_DbgPfn_Test::TestBody:  hi there", buf);
+#endif
 
   dbg_ctx_destroy(dc);
 }
@@ -852,8 +867,13 @@ TEST_F(DbgTest, DbgPsn)
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 19);
   EXPECT_STREQ("TestBody:  hi there", buf);
+#else
+  EXPECT_EQ(cnt, 40);
+  EXPECT_STREQ("DbgTest_DbgPsn_Test::TestBody:  hi there", buf);
+#endif
 
   dbg_ctx_destroy(dc);
 }
@@ -872,24 +892,39 @@ TEST_F(DbgTest, DbgEX)
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 22);
   EXPECT_STREQ("TestBody:+\nTestBody:-\n", buf);
+#else
+  EXPECT_EQ(cnt, 62);
+  EXPECT_STREQ("DbgTest_DbgEX_Test::TestBody:+\nDbgTest_DbgEX_Test::TestBody:-\n", buf);
+#endif
 
   DBG_PFE(dc, 0, "Entered %d\n", 1);
   DBG_PFX(dc, 0, "Exited  %d\n", 2);
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 42);
   EXPECT_STREQ("TestBody:+ Entered 1\nTestBody:- Exited  2\n", buf);
+#else
+  EXPECT_EQ(cnt, 82);
+  EXPECT_STREQ("DbgTest_DbgEX_Test::TestBody:+ Entered 1\nDbgTest_DbgEX_Test::TestBody:- Exited  2\n", buf);
+#endif
 
   DBG_PSE(dc, 0, "Entered 1\n");
   DBG_PSX(dc, 0, "Exited  2\n");
 
   // Check it
   cnt = dbg_read(dc, buf, sizeof(buf), sizeof(buf)-1);
+#ifndef _MSC_VER
   EXPECT_EQ(cnt, 42);
   EXPECT_STREQ("TestBody:+ Entered 1\nTestBody:- Exited  2\n", buf);
+#else
+  EXPECT_EQ(cnt, 82);
+  EXPECT_STREQ("DbgTest_DbgEX_Test::TestBody:+ Entered 1\nDbgTest_DbgEX_Test::TestBody:- Exited  2\n", buf);
+#endif
 
   dbg_ctx_destroy(dc);
 }

@@ -17,6 +17,9 @@
 #include "../ast/astbuild.h"
 #include "ponyassert.h"
 
+extern bool are_any_fields_incomplete(pass_opt_t* opt, ast_t* ast);
+
+
 static bool check_provides(pass_opt_t* opt, ast_t* type, ast_t* provides,
   errorframe_t* errorf)
 {
@@ -467,7 +470,10 @@ bool expr_localref(pass_opt_t* opt, ast_t* ast)
       {
         ast_t* parent = ast_parent(ast);
         if((ast_id(parent) != TK_DOT) && (ast_id(parent) != TK_CHAIN))
+        {
+          printf("wink2: "); ast_print(ast, 800);
           type = set_cap_and_ephemeral(type, TK_TAG, TK_NONE);
+        }
 
         if(ast_id(ast) == TK_VARREF)
         {
@@ -520,7 +526,10 @@ bool expr_paramref(pass_opt_t* opt, ast_t* ast)
   {
     ast_t* parent = ast_parent(ast);
     if((ast_id(parent) != TK_DOT) && (ast_id(parent) != TK_CHAIN))
+    {
+      printf("wink3: "); ast_print(ast, 800);
       type = set_cap_and_ephemeral(type, TK_TAG, TK_NONE);
+    }
   }
 
   // Get the type of the parameter and attach it to our reference.
@@ -792,13 +801,14 @@ bool expr_this(pass_opt_t* opt, ast_t* ast)
   // because if the field is defined, we're allowed to read it and if it's
   // undefined we'll be allowed to write to it to finish defining it.
   // The AST_FLAG_INCOMPLETE flag is set during the refer pass.
+  ast_t* parent = NULL;
   if(ast_checkflag(ast, AST_FLAG_INCOMPLETE))
   {
     bool incomplete_ok = false;
 
     // We consider it to be okay to be incomplete if on the left side of a dot,
     // where the dot points to a field reference.
-    ast_t* parent = ast_parent(ast);
+    parent = ast_parent(ast);
     if((ast_id(parent) == TK_DOT) && (ast_child(parent) == ast))
     {
       ast_t* def = (ast_t*)ast_data(parent);
@@ -806,6 +816,21 @@ bool expr_this(pass_opt_t* opt, ast_t* ast)
 
       switch(ast_id(def))
       {
+        /* TODO wink: A simple solution to allowing a class which
+         * TODO wink: may have functions that initialize fields
+         * TODO wink: to compile. */
+        case TK_FUN:
+        {
+          // If aren_any_fields_incomplete return true if there are
+          // fields that haven't been initialized (i.e. they are
+          // still variables that are SYM_UNDEFINED). So incomplete_ok be
+          // false and below the refcap will be TK_TAG.
+          incomplete_ok = !are_any_fields_incomplete(opt, ast);
+          printf("expr_this: TK_FUN are_any_fields_incomplete=%d\n",
+              !incomplete_ok);
+          break;
+        }
+
         case TK_FVAR:
         case TK_FLET:
         case TK_EMBED: incomplete_ok = true; break;
@@ -819,6 +844,7 @@ bool expr_this(pass_opt_t* opt, ast_t* ast)
       ast_t* tag_type = set_cap_and_ephemeral(nominal, TK_TAG, TK_NONE);
       ast_setflag(tag_type, AST_FLAG_INCOMPLETE);
       ast_replace(&nominal, tag_type);
+      printf("expr_this: !incomplete_ok after  replace nominal"); ast_print(nominal, 800);
     }
   }
 

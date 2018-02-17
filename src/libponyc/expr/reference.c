@@ -17,6 +17,13 @@
 #include "../ast/astbuild.h"
 #include "ponyassert.h"
 
+#define DBG_ENABLED true
+#include "../../libponyrt/dbg/dbg.h"
+#define DBG_AST_ENABLED true
+#include "../ast/dbg_ast.h"
+
+extern dbg_ctx_t* dc;
+
 extern bool are_any_fields_incomplete(pass_opt_t* opt, ast_t* ast);
 
 
@@ -471,7 +478,12 @@ bool expr_localref(pass_opt_t* opt, ast_t* ast)
         ast_t* parent = ast_parent(ast);
         if((ast_id(parent) != TK_DOT) && (ast_id(parent) != TK_CHAIN))
         {
-          printf("wink2: "); ast_print(ast, 800);
+          if(DBG(dc,16))
+          {
+            DBG_ASTF(dc, ast, "parent != TK_DOT && parent != _TK_CHAIN "
+              "call set_cap_and_ephermeral");
+            DBG_AST(DBG_LOC(dc), parent);
+          }
           type = set_cap_and_ephemeral(type, TK_TAG, TK_NONE);
         }
 
@@ -527,7 +539,12 @@ bool expr_paramref(pass_opt_t* opt, ast_t* ast)
     ast_t* parent = ast_parent(ast);
     if((ast_id(parent) != TK_DOT) && (ast_id(parent) != TK_CHAIN))
     {
-      printf("wink3: "); ast_print(ast, 800);
+      if(DBG(dc,16))
+      {
+        DBG_ASTF(dc, ast, "parent != TK_DOT && parent != _TK_CHAIN "
+            "call set_cap_and_ephermeral");
+        DBG_AST(DBG_LOC(dc), parent);
+      }
       type = set_cap_and_ephemeral(type, TK_TAG, TK_NONE);
     }
   }
@@ -826,8 +843,9 @@ bool expr_this(pass_opt_t* opt, ast_t* ast)
           // still variables that are SYM_UNDEFINED). So incomplete_ok be
           // false and below the refcap will be TK_TAG.
           incomplete_ok = !are_any_fields_incomplete(opt, ast);
-          printf("expr_this: TK_FUN are_any_fields_incomplete=%d\n",
-              !incomplete_ok);
+          if(DBG(dc,16))
+            DBG_ASTF(dc, ast, "TK_FUN are_any_fields_incomplete=%d",
+              incomplete_ok);
           break;
         }
 
@@ -844,7 +862,8 @@ bool expr_this(pass_opt_t* opt, ast_t* ast)
       ast_t* tag_type = set_cap_and_ephemeral(nominal, TK_TAG, TK_NONE);
       ast_setflag(tag_type, AST_FLAG_INCOMPLETE);
       ast_replace(&nominal, tag_type);
-      printf("expr_this: !incomplete_ok after  replace nominal"); ast_print(nominal, 800);
+      if(DBG(dc,16))
+        DBG_ASTF(dc, ast, "!incomplete_ok after  replace nominal");
     }
   }
 

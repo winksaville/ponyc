@@ -5,24 +5,28 @@
 #include "ponyassert.h"
 #include <string.h>
 
-void ast_print_and_parents(const char* s, ast_t* ast, int number)
+#define DBG_ENABLED true
+#include "../../libponyrt/dbg/dbg.h"
+#define DBG_AST_ENABLED true
+#include "../ast/dbg_ast.h"
+
+
+// Initialize debug context
+dbg_ctx_t* dc = NULL;
+//INITIALIZER(initialize)
+static void initialize()
 {
-  for(int i=0; (ast != NULL) && (i < number); i++)
-  {
-    printf("%s[%d]: ", s, -i); ast_print(ast, 800);
-    ast = ast_parent(ast);
-  }
+  dc = dbg_ctx_impl_file_create(32, stderr);
+  dbg_printf(DBG_LOC(dc), "\n");
 }
 
-void ast_print_siblings(const char* s, ast_t* ast)
+//  Finalize debug context
+//FINALIZER(finalize)
+static void finalize()
 {
-  ast_t* parent = ast_parent(ast);
-  ast_t* child = ast_child(parent);
-  for(int i=0; (child != NULL); i++)
-  {
-    printf("%s[%d]: ", s, i); ast_print(child, 800);
-    child = ast_sibling(child);
-  }
+  dbg_printf(DBG_LOC(dc), "\n");
+  dbg_ctx_destroy(dc);
+  dc = NULL;
 }
 
 /**
@@ -51,8 +55,11 @@ bool are_any_fields_incomplete(pass_opt_t* opt, ast_t* ast)
   ast_t* members = ast_childidx(opt->check.frame->type, 4);
   ast_t* first_child = ast_child(members);
   ast_t* member = first_child;
-  //printf("are_any_fields_incomplete: ???? members     "); ast_print(members, 800);
-  //printf("are_any_fields_incomplete: ???? first_child "); ast_print(first_child, 800);
+  if(DBG(dc, 2))
+  {
+    DBG_AST(dc, ast);
+    DBG_AST(DBG_LOC(dc), first_child);
+  }
 
   while(member != NULL)
   {
@@ -68,8 +75,7 @@ bool are_any_fields_incomplete(pass_opt_t* opt, ast_t* ast)
 
         if(status != SYM_DEFINED)
         {
-          printf("are_any_fields_incomplete: TRUE ast         "); ast_print(ast, 800);
-          printf("are_any_fileds_incomplete: TRUE parent ast  "); ast_print(ast_parent(ast), 800);
+          if(DBG(dc, 2)) DBG_ASTF(dc, ast, "TRUE");
           return true;
         }
 
@@ -82,8 +88,7 @@ bool are_any_fields_incomplete(pass_opt_t* opt, ast_t* ast)
     member = ast_sibling(member);
   }
 
-  //printf("are_any_fields_incomplete: false a "); ast_print(ast, 800);
-  //printf("are_any_fileds_incomplete: false p "); ast_print(ast_parent(ast), 800);
+  if(DBG(dc, 2)) DBG_ASTF(dc, ast, "FALSE");
   return false;
 }
 
@@ -92,24 +97,19 @@ static bool is_this_incomplete(pass_opt_t* opt, ast_t* ast)
   // If we're in a default field initialiser, we're incomplete by definition.
   if(opt->check.frame->method == NULL)
   {
-    //printf("is_this_incomplete: 1a "); ast_print(ast, 800);
-    //printf("is_this_incomplete: 1p "); ast_print(ast_parent(ast), 800);
+    if(DBG(dc, 2)) DBG_ASTF(dc, ast, "return TRUE");
     return true;
   }
 
   // If we're not in a constructor, we're complete by definition.
   if(ast_id(opt->check.frame->method) != TK_NEW)
   {
-    //printf("is_this_incomplete: 2a "); ast_print(ast, 800);
-    //printf("is_this_incomplete: 2p "); ast_print(ast_parent(ast), 800);
+    if(DBG(dc, 2)) DBG_ASTF(dc, ast, "return FALSE");
     return false;
   }
 
-  //printf("is_this_incomplete: 3a "); ast_print(ast, 800);
-  //printf("is_this_incomplete: 3p "); ast_print(ast_parent(ast), 800);
   bool v = are_any_fields_incomplete(opt, ast);
-  //printf("is_this_incomplete: 4a v=%d ", v); ast_print(ast, 800);
-  //printf("is_this_incomplete: 4p v=%d ", v); ast_print(ast_parent(ast), 800);
+  if(DBG(dc, 2)) DBG_ASTF(dc, ast, "return %d ", v);
   return v;
 }
 
@@ -318,8 +318,8 @@ static bool refer_this(pass_opt_t* opt, ast_t* ast)
   // Mark the this reference as incomplete if not all fields are defined yet.
   if(is_this_incomplete(opt, ast))
   {
-    printf("winka: "); ast_print(ast, 800);
-    printf("winkp: "); ast_print(ast_parent(ast), 800);
+    if(DBG(dc,2)) DBG_AST(dc, ast);
+    if(DBG(dc,2)) DBG_AST(dc, ast_parent(ast));
     ast_setflag(ast, AST_FLAG_INCOMPLETE);
   }
 
@@ -402,17 +402,17 @@ bool refer_reference(pass_opt_t* opt, ast_t** astp)
     case TK_FUN:
     {
       // Transform to "this.f".
-      printf("refer_reference: Transform to \"this.f\"\n");
+      if(DBG(dc,2)) DBG_ASTF(dc, ast, "Transform to \"this.f\" ");
       ast_t* dot = ast_from(ast, TK_DOT);
       ast_add(dot, ast_child(ast));
 
       ast_t* self = ast_from(ast, TK_THIS);
       ast_add(dot, self);
 
-      printf("refer_reference: before Transform to \"this.f\" "); ast_print(*astp, 800);
+      if(DBG(dc,2)) DBG_ASTF(dc, *astp, "before Transform to \"this.f\" ");
       ast_replace(astp, dot);
       ast = *astp;
-      printf("refer_reference: after  Transform to \"this.f\" "); ast_print(*astp, 800);
+      if(DBG(dc,2)) DBG_ASTF(dc, *astp, "after  Transform to \"this.f\" ");
       return refer_this(opt, self) && refer_dot(opt, ast);
     }
 
@@ -623,7 +623,7 @@ static bool assign_id(pass_opt_t* opt, ast_t* ast, bool let, bool need_value)
     case SYM_DEFINED:
       if(let)
       {
-        printf("assign_id: name=%s SYM_DEFINED ast: ", name); ast_print(ast, 800);
+        if(DBG(dc,2)) DBG_ASTF(dc, ast, "name=%s SYM_DEFINED ast: ", name);
         ast_error(opt->check.errors, ast,
           "can't assign to a let or embed definition more than once");
         return false;
@@ -644,7 +644,7 @@ static bool assign_id(pass_opt_t* opt, ast_t* ast, bool let, bool need_value)
 
       if(let)
       {
-        printf("assign_id: name=%s SYM_CONSUMED ast: ", name); ast_print(ast, 800);
+        if(DBG(dc,2)) DBG_ASTF(dc, ast, "name=%s SYM_CONSUMED ast: ", name);
         ast_error(opt->check.errors, ast,
           "can't assign to a let or embed definition more than once");
         ok = false;
@@ -759,20 +759,25 @@ static bool refer_pre_call(pass_opt_t* opt, ast_t* ast)
   pony_assert(ast_id(ast) == TK_CALL);
   AST_GET_CHILDREN(ast, lhs, positional, named, question);
 
-  printf("refer_pre_call:+ lhs: "); ast_print(lhs, 800);
-  printf("          positional: "); ast_print(positional, 800);
-  printf("               named: "); ast_print(named, 800);
-  printf("            question: "); ast_print(question, 800);
+  if(DBG(dc, 0))
+  {
+    dbg_printf(dc, "+"); DBG_AST(dc, ast);
+    DBG_AST(DBG_LOC(dc), lhs);
+    DBG_AST(DBG_LOC(dc), positional);
+    DBG_AST(DBG_LOC(dc), named);
+    DBG_AST(DBG_LOC(dc), question);
+  }
 
   // Run the args before the receiver, so that symbol status tracking
   // will see things like consumes in the args first.
   if(!ast_passes_subtree(&positional, opt, PASS_REFER) ||
-    !ast_passes_subtree(&named, opt, PASS_REFER)) {
-    printf("refer_pre_call:- ret false\n");
+    !ast_passes_subtree(&named, opt, PASS_REFER))
+  {
+    if(DBG(dc, 1)) { dbg_printf(dc, "-ret false: "); DBG_AST(dc, ast); }
     return false;
   }
 
-  printf("refer_pre_call:- ret true\n");
+  if(DBG(dc, 1)) { dbg_printf(dc, "-ret false: "); DBG_AST(dc, ast); }
   return true;
 }
 
@@ -780,18 +785,22 @@ static bool refer_pre_assign(pass_opt_t* opt, ast_t* ast)
 {
   pony_assert(ast_id(ast) == TK_ASSIGN);
   AST_GET_CHILDREN(ast, left, right);
-  printf("refer_pre_assign:+ left: "); ast_print(left, 800);
-  printf("                  right: "); ast_print(right, 800);
+  if(DBG(dc,0))
+  {
+    dbg_printf(dc, "+"); DBG_AST(dc, ast);
+    DBG_AST(DBG_LOC(dc), left);
+    DBG_AST(DBG_LOC(dc), right);
+  }
 
   // Run the right side before the left side, so that symbol status tracking
   // will see things like consumes in the right side first.
   if(!ast_passes_subtree(&right, opt, PASS_REFER))
   {
-    printf("refer_pre_assign:- ret false\n");
+    if(DBG(dc,1)) {dbg_printf(dc, "-ret false: "); DBG_AST(dc, ast);}
     return false;
   }
 
-  printf("refer_pre_assign:- ret true\n");
+  if(DBG(dc,1)) {dbg_printf(dc, "-ret true: "); DBG_AST(dc, ast);}
   return true;
 }
 
@@ -799,26 +808,27 @@ static bool refer_assign(pass_opt_t* opt, ast_t* ast)
 {
   pony_assert(ast_id(ast) == TK_ASSIGN);
   AST_GET_CHILDREN(ast, left, right);
-  printf("refer_assign:+ left: "); ast_print(left, 800);
-  printf("              right: "); ast_print(right, 800);
+  if(DBG(dc,0))
+  {
+    dbg_printf(dc, "+"); DBG_AST(dc, ast);
+    DBG_AST(DBG_LOC(dc), left);
+    DBG_AST(DBG_LOC(dc), right);
+  }
 
   if(!is_lvalue(opt, left, is_result_needed(ast)))
   {
     if(ast_id(left) == TK_DONTCAREREF)
     {
-      ast_error(opt->check.errors, left,
-        "can't read from '_'");
+      ast_error(opt->check.errors, left, "can't read from '_'");
     } else {
       ast_error(opt->check.errors, ast,
         "left side must be something that can be assigned to");
     }
-    printf("refer_assign:        left: "); ast_print(left, 800);
-    printf("refer_assign:- false right: "); ast_print(right, 800);
+    if(DBG(dc,1)) dbg_printf(dc, "-ret false\n");
     return false;
   }
 
-  printf("refer_assign:       left: "); ast_print(left, 800);
-  printf("refer_assign:- true right: "); ast_print(right, 800);
+  if(DBG(dc,1)) dbg_printf(dc, "-ret true\n");
   return true;
 }
 
@@ -871,7 +881,7 @@ static bool refer_pre_new(pass_opt_t* opt, ast_t* ast)
   (void)opt;
   pony_assert(ast_id(ast) == TK_NEW);
 
-  printf("refer_pre_new:+ ast: "); ast_print(ast, 800);
+  if(DBG(dc,0)) {dbg_printf(dc, "+"); DBG_AST(dc, ast);}
 
   // Set all fields to undefined at the start of this scope.
   ast_t* members = ast_parent(ast);
@@ -887,11 +897,14 @@ static bool refer_pre_new(pass_opt_t* opt, ast_t* ast)
         // Mark this field as SYM_UNDEFINED.
         AST_GET_CHILDREN(member, id, type, expr);
         ast_setstatus(ast, ast_name(id), SYM_UNDEFINED);
-        printf("refer_pre_new: set SYM_UNDEFINED\n");
-        printf("             member: "); ast_print(member, 800);
-        printf("                 id: "); ast_print(id, 800);
-        printf("               type: "); ast_print(type, 800);
-        printf("               expr: "); ast_print(expr, 800);
+        if(DBG(dc,2))
+        {
+          DBG_ASTF(dc, ast, "set SYM_UNDEFINED");
+          DBG_AST(DBG_LOC(dc), member);
+          DBG_AST(DBG_LOC(dc), id);
+          DBG_AST(DBG_LOC(dc), type);
+          DBG_AST(DBG_LOC(dc), expr);
+        }
         break;
       }
 
@@ -900,7 +913,7 @@ static bool refer_pre_new(pass_opt_t* opt, ast_t* ast)
         //sym_status_t status;
         //ast_t* child = ast_child(member);
         //ast_t* child_def = ast_get(ast, ast_name(child), &status);
-        printf("refer_pre_new: default member: "); ast_print(member, 800);
+        if(DBG(dc,2)) DBG_AST(dc, member);
         break;
       }
     }
@@ -908,7 +921,7 @@ static bool refer_pre_new(pass_opt_t* opt, ast_t* ast)
     member = ast_sibling(member);
   }
 
-  printf("refer_pre_new:- result=true ast:"); ast_print(ast, 800);
+  if(DBG(dc,1)) {dbg_printf(dc, "-ret true: "); DBG_AST(dc, ast);}
   return true;
 }
 
@@ -917,9 +930,12 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
   static int recurse_count = 0;
 
   recurse_count += 1;
-  printf("refer_new_process:+ recurse_count=%d\n", recurse_count);
-  ast_print_and_parents("refer_new_process:+ ast", ast, 4);
-  ast_print_siblings("refer_new_process: sibilings", ast);
+  if(DBG(dc,0))
+  {
+    dbg_printf(dc, "recurse_count=%d: ", recurse_count); DBG_AST(dc, ast);
+  }
+  //DBG_ASTP(dc, 0, ast, 4);
+  //DBG_ASTS(dc, 0, ast);
 
   ast_t* sibling = first_sibling;
   while(sibling != NULL)
@@ -929,12 +945,14 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
     {
       case TK_FUN:
       {
-        printf("refer_new_process: sibling_id=%d TK_FUN+  sibling: ", sibling_id); ast_print(sibling, 800);
+        if(DBG(dc,2))
+          DBG_ASTF(dc, sibling, "sibling_id=%d TK_FUN+  sibling: ",
+              sibling_id);
         if(!are_any_fields_incomplete(opt, ast))
         {
-          printf("refer_new_process: NO fields are INCOMPLETE\n");
+          if(DBG(dc,2)) DBG_ASTF(dc, ast, "NO fields are INCOMPLETE");
         } else {
-          printf("refer_new_process: fields are INCOMPLETE\n");
+          if(DBG(dc,2)) DBG_ASTF(dc, ast, "fields are INCOMPLETE");
         }
 
         ast_t* fun_member = ast_child(sibling);
@@ -945,7 +963,8 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
           {
             case TK_SEQ:
             {
-              printf("refer_new_process: fun_id=%d TK_FUN.TK_SEQ+\n", fun_id);
+              if(DBG(dc,2))
+                DBG_ASTF(dc, ast, "fun_id=%d TK_FUN.TK_SEQ:+ ", fun_id);
               ast_t* seq_member = ast_child(fun_member);
               while(seq_member != NULL)
               {
@@ -954,7 +973,9 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
                 {
                   case TK_ASSIGN:
                   {
-                    printf("refer_new_process: seq_id=%d TK_FUN.TK_SEQ.TK_ASSIGN:+ ", seq_id); ast_print(seq_member, 800);
+                    if(DBG(dc,2))
+                      DBG_ASTF(dc, seq_member,
+                        "seq_id=%d TK_FUN.TK_SEQ.TK_ASSIGN:+ ", seq_id);
                     AST_GET_CHILDREN(seq_member, lhs, rhs);
                     if((lhs != NULL) && (rhs != NULL))
                     {
@@ -963,7 +984,10 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
                       {
                         ast_t* lhs_reference = ast_child(lhs);
                         const char* lhs_name = ast_name(lhs_reference);
-                        printf("refer_new_process: lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN lhs_name=%s lhs_reference: ", lhs_id, lhs_name); ast_print(lhs_reference, 800);
+                        if(DBG(dc,2))
+                          DBG_ASTF(dc, lhs_reference,
+                            "lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN "
+                            "lhs_name=%s lhs_reference: ", lhs_id, lhs_name);
                         sym_status_t status;
                         ast_t* sym = ast_get(ast, lhs_name, &status);
                         if(sym != NULL)
@@ -976,52 +1000,85 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
                               case TK_FLET:
                               case TK_EMBED:
                               {
-                                printf("refer_new_process: lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN lhs_name=%s ast_get status=SYM_UNDEFINED change to SYM_DEFINED\n", lhs_id, lhs_name);
+                                if(DBG(dc,2))
+                                  DBG_ASTF(dc, ast,
+                                    "lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN "
+                                    "lhs_name=%s ast_get status=SYM_UNDEFINED "
+                                    "change to SYM_DEFINED", lhs_id, lhs_name);
                                 ast_setstatus(ast, lhs_name, SYM_DEFINED);
                                 break;
                               }
                               default:
                               {
-                                printf("refer_new_process: lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN lhs_name=%s ast_get status=SYM_UNDEFINED NOT a TK_FVAR, TK_FLET or TK_EMBED\n", lhs_id, lhs_name );
+                                if(DBG(dc,2))
+                                  DBG_ASTF(dc, ast,
+                                    "lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN "
+                                    "lhs_name=%s ast_get status=SYM_UNDEFINED "
+                                    "NOT a TK_FVAR, TK_FLET or TK_EMBED",
+                                    lhs_id, lhs_name );
                                 break;
                               }
                             }
                           } else {
-                            printf("refer_new_process: lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN lhs_name=%s ast_get status=%d NOT SYM_UNDEFINED ", lhs_id, lhs_name, status); ast_print(lhs, 800);
+                            if(DBG(dc,2))
+                              DBG_ASTF(dc, lhs,
+                                "lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN lhs_name=%s "
+                                "ast_get status=%d NOT SYM_UNDEFINED ",
+                                lhs_id, lhs_name, status);
                           }
                         } else {
-                          printf("refer_new_process: lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN lhs_name=%s ast_get status=%d sym == NULL ", lhs_id, lhs_name, status); ast_print(lhs, 800);
+                          if(DBG(dc,2))
+                            DBG_ASTF(dc, lhs,
+                              "lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN "
+                              "lhs_name=%s ast_get status=%d sym == NULL ",
+                              lhs_id, lhs_name, status);
                         }
                       } else {
-                        printf("refer_new_process: lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN NOT a TK_REFERENCE lhs: ", lhs_id); ast_print(lhs, 800);
+                        if(DBG(dc,2))
+                          DBG_ASTF(dc, lhs,
+                            "lhs_id=%d TK_FUN.TK_SEQ.TK_ASSIGN NOT a "
+                            "TK_REFERENCE lhs: ", lhs_id);
                       }
-                      printf("refer_new_process: seq_id=%d TK_FUN.TK_SEQ.TK_ASSIGN rhs: ", seq_id); ast_print(rhs, 800);
+                      if(DBG(dc,2))
+                        DBG_ASTF(dc, lhs,
+                          "seq_id=%d TK_FUN.TK_SEQ.TK_ASSIGN rhs: ", seq_id);
                     }
-                    printf("refer_new_process: seq_id=%d TK_FUN.TK_SEQ.TK_ASSIGN:- ", seq_id); ast_print(seq_member, 800);
+                    if(DBG(dc,2))
+                      DBG_ASTF(dc, seq_member,
+                        "seq_id=%d TK_FUN.TK_SEQ.TK_ASSIGN:- ", seq_id);
                     break;
                   }
                   case TK_FUN:
                   {
-                    printf("refer_new_process: seq_id=%d TK_FUN.TK_SEQ.TK_FUN:+ recurse: ", seq_id); ast_print(seq_member, 800);
+                    if(DBG(dc,2))
+                      DBG_ASTF(dc, seq_member,
+                        "seq_id=%d TK_FUN.TK_SEQ.TK_FUN:+ recurse: ", seq_id);
                     refer_new_process(opt, ast, seq_member);
-                    printf("refer_new_process: seq_id=%d TK_FUN.TK_SEQ.TK_FUN:- recurse: ", seq_id); ast_print(seq_member, 800);
+                    if(DBG(dc,2))
+                      DBG_ASTF(dc, seq_member,
+                        "seq_id=%d TK_FUN.TK_SEQ.TK_FUN:- recurse: ", seq_id);
                     break;
                   }
                   default:
                   {
-                    printf("refer_new_process: seq_id=%d default TK_FUN.TK_SEQ: ", seq_id); ast_print(seq_member, 800);
+                    if(DBG(dc,2))
+                      DBG_ASTF(dc, seq_member,
+                        "seq_id=%d default TK_FUN.TK_SEQ: ", seq_id);
                     break;
                   }
                 }
                 seq_member = ast_sibling(seq_member);
               }
-              printf("refer_new_process: fun_id=%d TK_FUN.TK_SEQ-\n", fun_id);
+              if(DBG(dc,2))
+                DBG_ASTF(dc, ast, "fun_id=%d TK_FUN.TK_SEQ-", fun_id);
               break;
             }
 
             default:
             {
-              printf("refer_new_process: fun_id=%d default TK_FUN: ", fun_id); ast_print(fun_member, 800);
+              if(DBG(dc,2))
+                DBG_ASTF(dc, fun_member, "fun_id=%d default TK_FUN: ",
+                  fun_id);
               break;
             }
           }
@@ -1029,17 +1086,21 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
         }
         if(!are_any_fields_incomplete(opt, ast))
         {
-          printf("refer_new_process: NO fields are INCOMPLETE\n");
+          if(DBG(dc,2)) DBG_ASTF(dc, ast, "NO fields are INCOMPLETE");
         } else {
-          printf("refer_new_process: fields are INCOMPLETE\n");
+          if(DBG(dc,2)) DBG_ASTF(dc, ast, "fields are INCOMPLETE");
         }
-        printf("refer_new_process: sibling_id=%d TK_FUN-  sibling: ", sibling_id); ast_print(sibling, 800);
+        if(DBG(dc,2))
+          DBG_ASTF(dc, sibling, "sibling_id=%d TK_FUN-  sibling: ",
+            sibling_id);
         break;
       }
 
       default:
       {
-        printf("refer_new_process: sibling_id=%d default: ", sibling_id); ast_print(sibling, 800);
+        if(DBG(dc,2))
+          DBG_ASTF(dc, sibling, "sibling_id=%d default: ",
+              sibling_id);
         break;
       }
     }
@@ -1047,7 +1108,10 @@ static void refer_new_process(pass_opt_t* opt, ast_t* ast, ast_t* first_sibling)
     sibling = ast_sibling(sibling);
   }
 
-  printf("refer_new_process:- recurse_count=%d\n", recurse_count);
+  if(DBG(dc,1))
+  {
+    dbg_printf(dc, "-recurse_count=%d: ", recurse_count); DBG_AST(dc, ast);
+  }
   recurse_count -= 1;
 }
 
@@ -1055,10 +1119,10 @@ static bool refer_new(pass_opt_t* opt, ast_t* ast)
 {
   pony_assert(ast_id(ast) == TK_NEW);
 
-  printf("refer_new:+ ast: "); ast_print(ast, 800);
+  if(DBG(dc,0)) {dbg_printf(dc, "+"); DBG_AST(dc, ast);}
 
   ast_t* members = ast_parent(ast);
-  printf("refer_new:  members: "); ast_print(members, 800);
+  if(DBG(dc,2)) DBG_ASTF(dc, members, "members");
   ast_t* first_sibling = ast_child(members);
   refer_new_process(opt, ast, first_sibling);
 
@@ -1069,7 +1133,7 @@ static bool refer_new(pass_opt_t* opt, ast_t* ast)
       "constructor with undefined fields is here");
   }
 
-  printf("refer_new:- result=%d\n", result);
+  if(DBG(dc,1)) {dbg_printf(dc, "-result=%d: ", result); DBG_AST(dc, ast);}
   return result;
 }
 
@@ -1201,10 +1265,13 @@ static bool refer_if(pass_opt_t* opt, ast_t* ast)
   pony_assert((ast_id(ast) == TK_IF) || (ast_id(ast) == TK_IFDEF));
   AST_GET_CHILDREN(ast, cond, left, right);
 
-  printf("refer_if:+ ast:   "); ast_print(ast, 800);
-  printf("refer_if:  cond:  "); ast_print(cond, 800);
-  printf("refer_if:  left:  "); ast_print(left, 800);
-  printf("refer_if:  right: "); ast_print(right, 800);
+  if(DBG(dc,0))
+  {
+    dbg_printf(dc, "+"); DBG_AST(dc, ast);
+    DBG_AST(DBG_LOC(dc), cond);
+    DBG_AST(DBG_LOC(dc), left);
+    DBG_AST(DBG_LOC(dc), right);
+  }
 
   size_t branch_count = 0;
 
@@ -1229,7 +1296,7 @@ static bool refer_if(pass_opt_t* opt, ast_t* ast)
   // Push our symbol status to our parent scope.
   ast_inheritstatus(ast_parent(ast), ast);
 
-  printf("refer_if:- true ast: "); ast_print(ast, 800);
+  if(DBG(dc,1)) {dbg_printf(dc, "-ret true: "); DBG_AST(dc, ast);}
   return true;
 }
 
@@ -1556,6 +1623,19 @@ ast_result_t pass_pre_refer(ast_t** astp, pass_opt_t* options)
 
   switch(ast_id(ast))
   {
+    case TK_CLASS:
+    {
+      const char* name = ast_name(ast_child(ast));
+      if(strcmp(name, "TestFunInit") == 0) {
+        if(dc == NULL) initialize();
+        dbg_sb(dc, 0, 1);
+        dbg_sb(dc, 1, 1);
+        dbg_sb(dc, 2, 1);
+        dbg_sb(dc, 16, 1);
+        dbg_printf(DBG_LOC(dc), "Enabling debug 0, 1, 2, 16\n");
+      }
+      break;
+    }
     case TK_NEW:    r = refer_pre_new(options, ast); break;
     case TK_CALL:   r = refer_pre_call(options, ast); break;
     case TK_ASSIGN: r = refer_pre_assign(options, ast); break;
@@ -1579,6 +1659,19 @@ ast_result_t pass_refer(ast_t** astp, pass_opt_t* options)
 
   switch(ast_id(ast))
   {
+    case TK_CLASS:
+    {
+      const char* name = ast_name(ast_child(ast));
+      if(strcmp(name, "TestFunInit") == 0) {
+        dbg_printf(DBG_LOC(dc), "Disabling debug 0, 1, 2, 16\n");
+        dbg_sb(dc, 0, 0);
+        dbg_sb(dc, 1, 0);
+        dbg_sb(dc, 2, 0);
+        dbg_sb(dc, 16, 0);
+        finalize();
+      }
+      break;
+    }
     case TK_REFERENCE: r = refer_reference(options, astp); break;
     case TK_DOT:       r = refer_dot(options, ast); break;
     case TK_QUALIFY:   r = refer_qualify(options, ast); break;

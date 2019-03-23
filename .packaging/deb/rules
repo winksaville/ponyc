@@ -43,6 +43,7 @@ MAKE_JFLAG := -j1
 	dh $@
 
 override_dh_auto_build:
+	echo 'override_dh_auto_build:+ do simple things'
 	env
 	uname -m
 	echo $(DEB_DISTRIBUTION)
@@ -50,21 +51,30 @@ override_dh_auto_build:
 	echo "doing make" ; cd lib/llvm ; $(MAKE) verbose=1 LLVM_LINKER=gold $(MAKE_JFLAG)
 	echo "after  simple make=$(MAKE) $(MAJE_JFLAG)"
 	#$(MAKE) $(MAKE_OPTIONS) $(MAKE_JFLAG)
+	echo 'override_dh_auto_build:- do simple things'
 
-#override_dh_auto_install:
-#	dh_auto_install -- $(MAKE_OPTIONS)
-#
-#override_dh_auto_test:
-#	$(MAKE) test-ci $(MAKE_OPTIONS) $(MAKE-JFLAG)
-#
-#override_dh_auto_clean:
-#	$(MAKE) clean $(MAKE_OPTIONS)
-#
-## if newer debian/ubuntu disable unform compression in deb for bintray
-#ifeq (,$(filter $(DEB_DISTRIBUTION),stretch xenial))
-#override_dh_builddeb:
-#	dh_builddeb -- --no-uniform-compression
-#endif
+override_dh_auto_install:
+	echo 'override_dh_auto_install:+ do nothing'
+	#dh_auto_install -- $(MAKE_OPTIONS)
+	echo 'override_dh_auto_install:- do nothing'
+
+override_dh_auto_test:
+	echo 'override_dh_auto_test:+ do nothing'
+	#$(MAKE) test-ci $(MAKE_OPTIONS) $(MAKE-JFLAG)
+	echo 'override_dh_auto_test:- do nothing'
+
+override_dh_auto_clean:
+	echo 'override_dh_auto_clean:+ do nothing'
+	#$(MAKE) clean $(MAKE_OPTIONS)
+	echo 'override_dh_auto_clean:- do nothing'
+
+# if newer debian/ubuntu disable unform compression in deb for bintray
+ifeq (,$(filter $(DEB_DISTRIBUTION),stretch xenial))
+override_dh_builddeb:
+	echo 'override_dh_builddeb:+ invoke dh_builddeb'
+	dh_builddeb -- --no-uniform-compression
+	echo 'override_dh_builddeb:- invoke dh_builddeb'
+endif
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )

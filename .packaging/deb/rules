@@ -37,6 +37,7 @@ ifeq (,$(filter $(DEB_DISTRIBUTION),xenial))
 	MAKE_OPTIONS += default_ssl='openssl_1.1.0' default_pic=true
 endif
 
+MAKE_JFLAG := -j1
 
 %:
 	dh $@
@@ -45,22 +46,24 @@ override_dh_auto_build:
 	env
 	uname -m
 	echo $(DEB_DISTRIBUTION)
-	$(MAKE) $(MAKE_OPTIONS) -j8
+	cd lib/llvm
+	make verbose=1 LLVM_LINKER=gold $(MAKE_JFLAG)
+	#$(MAKE) $(MAKE_OPTIONS) $(MAKE_JFLAG)
 
-override_dh_auto_install:
-	dh_auto_install -- $(MAKE_OPTIONS)
-
-override_dh_auto_test:
-	$(MAKE) test-ci $(MAKE_OPTIONS) -j8
-
-override_dh_auto_clean:
-	$(MAKE) clean $(MAKE_OPTIONS)
-
-# if newer debian/ubuntu disable unform compression in deb for bintray
-ifeq (,$(filter $(DEB_DISTRIBUTION),stretch xenial))
-override_dh_builddeb:
-	dh_builddeb -- --no-uniform-compression
-endif
+#override_dh_auto_install:
+#	dh_auto_install -- $(MAKE_OPTIONS)
+#
+#override_dh_auto_test:
+#	$(MAKE) test-ci $(MAKE_OPTIONS) $(MAKE-JFLAG)
+#
+#override_dh_auto_clean:
+#	$(MAKE) clean $(MAKE_OPTIONS)
+#
+## if newer debian/ubuntu disable unform compression in deb for bintray
+#ifeq (,$(filter $(DEB_DISTRIBUTION),stretch xenial))
+#override_dh_builddeb:
+#	dh_builddeb -- --no-uniform-compression
+#endif
 
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )

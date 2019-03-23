@@ -46,7 +46,9 @@ override_dh_auto_build:
 	env
 	uname -m
 	echo $(DEB_DISTRIBUTION)
-	make -C ./lib/llvm verbose=1 LLVM_LINKER=gold $(MAKE_JFLAG)
+	echo "before simple make=$(MAKE) $(MAJE_JFLAG)"
+	echo "doing make" ; cd lib/llvm ; $(MAKE) verbose=1 LLVM_LINKER=gold $(MAKE_JFLAG)
+	echo "after  simple make=$(MAKE) $(MAJE_JFLAG)"
 	#$(MAKE) $(MAKE_OPTIONS) $(MAKE_JFLAG)
 
 #override_dh_auto_install:

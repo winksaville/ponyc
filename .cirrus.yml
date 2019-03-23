@@ -10,11 +10,11 @@ task:
     if [ -n "$CIRCLE_TAG" ]
     then
       echo "cloning $CIRRUS_TAG"
-      git clone --depth 1 --branch "$CIRCLE_TAG" --recurse-submodules https://github.com/ponylang/ponyc.git
+      git clone --depth 1 --branch "$CIRCLE_TAG" --recurse-submodules $CIRRUS_REPO_CLONE_URL
     elif [ -n "$CIRRUS_BRANCH" ]
     then
       echo "cloning $CIRRUS_BRANCH"
-      git clone --depth 1 --branch "$CIRRUS_BRANCH" --recurse-submodules https://github.com/ponylang/ponyc.git
+      git clone --depth 1 --branch "$CIRRUS_BRANCH" --recurse-submodules $CIRRUS_REPO_CLONE_URL
     fi
 
   test_script:

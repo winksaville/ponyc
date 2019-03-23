@@ -19,7 +19,7 @@ DEB_DISTRIBUTION = $(call dpkg_late_eval,DEB_DISTRIBUTION,dpkg-parsechangelog -S
 # We MUST set this to whatever the correct llvm-config to build with is if,
 # it isn't `llvm-config`, otherwise, the Pony build process won't be able to run
 
-MAKE_OPTIONS := prefix=/usr -f Makefile-lib-llvm use=llvm_link_static
+MAKE_OPTIONS := prefix=/usr -f Makefile-lib-llvm use=llvm_link_static LLVM_LINKER=gold
 
 ifeq ($(DEB_HOST_ARCH),amd64)
 	MAKE_OPTIONS += arch=x86-64 tune=intel
@@ -37,6 +37,7 @@ ifeq (,$(filter $(DEB_DISTRIBUTION),xenial))
 	MAKE_OPTIONS += default_ssl='openssl_1.1.0' default_pic=true
 endif
 
+MAKE_JFLAG := -j6
 
 %:
 	dh $@
@@ -45,13 +46,13 @@ override_dh_auto_build:
 	env
 	uname -m
 	echo $(DEB_DISTRIBUTION)
-	$(MAKE) $(MAKE_OPTIONS) -j8
+	$(MAKE) $(MAKE_OPTIONS) $(MAKE_JFLAG)
 
 override_dh_auto_install:
 	dh_auto_install -- $(MAKE_OPTIONS)
 
 override_dh_auto_test:
-	$(MAKE) test-ci $(MAKE_OPTIONS) -j8
+	$(MAKE) test-ci $(MAKE_OPTIONS) $(MAKE-JFLAG)
 
 override_dh_auto_clean:
 	$(MAKE) clean $(MAKE_OPTIONS)

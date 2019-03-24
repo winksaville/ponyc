@@ -37,7 +37,7 @@ ifeq (,$(filter $(DEB_DISTRIBUTION),xenial))
 	MAKE_OPTIONS += default_ssl='openssl_1.1.0' default_pic=true
 endif
 
-MAKE_JFLAG := -j4
+MAKE_JFLAG := -j8
 
 %:
 	dh $@

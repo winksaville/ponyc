@@ -37,7 +37,7 @@ ifeq (,$(filter $(DEB_DISTRIBUTION),xenial))
 	MAKE_OPTIONS += default_ssl='openssl_1.1.0' default_pic=true
 endif
 
-MAKE_JFLAG := -j3
+MAKE_JFLAG := -j4
 
 %:
 	dh $@
@@ -48,7 +48,7 @@ override_dh_auto_build:
 	uname -m
 	echo $(DEB_DISTRIBUTION)
 	echo "before simple make=$(MAKE) $(MAJE_JFLAG)"
-	echo "doing make" ; cd lib/llvm ; $(MAKE) verbose=1 LLVM_LINKER=gold $(MAKE_JFLAG)
+	echo "doing make" ; cd lib/llvm ; $(MAKE) LLVM_LINKER=gold $(MAKE_JFLAG)
 	echo "after  simple make=$(MAKE) $(MAJE_JFLAG)"
 	#$(MAKE) $(MAKE_OPTIONS) $(MAKE_JFLAG)
 	echo 'override_dh_auto_build:- do simple things'

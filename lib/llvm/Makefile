@@ -97,7 +97,7 @@ LLVM_INSTALL_DIR := $(ROOT_DIR)/dist
 LLVM_BUILD_ENGINE := "Unix Makefiles"
 LLVM_BUILD_TYPE := Release
 
-LLVM_LINKER := bfd
+LLVM_LINKER := gold
 #ifeq (llvm-3.9.1,$(LLVM_TARGET))
 #  # 3.9.1 doesn't supprot -DLLVM_USE_LINKER so make it empty to supress a warning
 #  LLVM_USE_LINKER :=

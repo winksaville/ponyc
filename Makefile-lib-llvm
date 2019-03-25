@@ -11,6 +11,20 @@
 # In the future compiling lib/llvm will be incorporated into Makefile
 # and Makefile-lib-llvm will be removed.
 
+# Debug to find -w
+CDIR = $(shell pwd)
+$(warning $(CDIR) MAKE="$(MAKE)")
+$(warning $(CDIR) MAKE_VERSION="$(MAKE_VERSION)")
+$(warning $(CDIR) MAKE_HOST="$(MAKE_HOST)")
+$(warning $(CDIR) MAKELEVEL="$(MAKELEVEL)")
+$(warning $(CDIR) MAKEFLAGS="$(MAKEFLAGS)")
+$(warning $(CDIR) GNUMAKEFLAGS="$(GNUMAKEFLAGS)")
+$(warning $(CDIR) MAKECMDGOALS="$(MAKECMDGOALS)")
+$(warning $(CDIR) CURDIR="$(CURDIR)")
+$(warning $(CDIR) SUFFIXES="$(SUFFIXES)")
+$(warning $(CDIR) .LIBPATTERNS="$(.LIBPATTERNS)")
+$(warning $(CDIR) MFLAGS="$(MFLAGS)")
+
 config ?= release
 
 root_dir := $(shell pwd)

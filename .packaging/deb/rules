@@ -44,6 +44,20 @@ MAKE_JFLAG := -j6
 
 override_dh_auto_build:
 	env
+	pwd
+	$(MAKE) --version
+	@echo MAKE="$(MAKE)"
+	@echo MAKE_VERSION="$(MAKE_VERSION)"
+	@echo MAKE_HOST="$(MAKE_HOST)"
+	@echo MAKELEVEL="$(MAKELEVEL)"
+	@echo MAKEFLAGS="$(MAKEFLAGS)"
+	@echo GNUMAKEFLAGS="$(GNUMAKEFLAGS)"
+	@echo MAKECMDGOALS="$(MAKECMDGOALS)"
+	@echo CURDIR="$(CURDIR)"
+	@echo SUFFIXES="$(SUFFIXES)"
+	@echo .LIBPATTERNS="$(.LIBPATTERNS)"
+	@echo MFLAGS="$(MFLAGS)"
+	uname -a
 	uname -m
 	echo $(DEB_DISTRIBUTION)
 	$(MAKE) $(MAKE_OPTIONS) $(MAKE_JFLAG)

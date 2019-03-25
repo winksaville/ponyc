@@ -25,6 +25,22 @@
 #
 # Based on [yurydelendik wasmllvm](https://gist.github.com/yurydelendik/4eeff8248aeb14ce763e)
 #
+#
+
+# Debug to find -w
+CDIR = $(shell pwd)
+$(warning $(CDIR) MAKE="$(MAKE)")
+$(warning $(CDIR) MAKE_VERSION="$(MAKE_VERSION)")
+$(warning $(CDIR) MAKE_HOST="$(MAKE_HOST)")
+$(warning $(CDIR) MAKELEVEL="$(MAKELEVEL)")
+$(warning $(CDIR) MAKEFLAGS="$(MAKEFLAGS)")
+$(warning $(CDIR) GNUMAKEFLAGS="$(GNUMAKEFLAGS)")
+$(warning $(CDIR) MAKECMDGOALS="$(MAKECMDGOALS)")
+$(warning $(CDIR) CURDIR="$(CURDIR)")
+$(warning $(CDIR) SUFFIXES="$(SUFFIXES)")
+$(warning $(CDIR) .LIBPATTERNS="$(.LIBPATTERNS)")
+$(warning $(CDIR) MFLAGS="$(MFLAGS)")
+
 
 ROOT_DIR := $(shell pwd)
 LLVM_URL := https://github.com/llvm/llvm-project.git
